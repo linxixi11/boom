@@ -1,7 +1,12 @@
 package com.bom.db;
 
 import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.security.CodeSource;
 import java.sql.*;
+import java.util.Locale;
 
 public class DatabaseManager {
     private static final String DB_URL;
@@ -9,19 +14,96 @@ public class DatabaseManager {
     private static final String PASSWORD = "";
 
     static {
-        String dataDir = System.getProperty("bom.data.dir");
-        if (dataDir == null || dataDir.isEmpty()) {
-            dataDir = System.getProperty("user.home") + File.separator + ".bom";
+        File dataDir = resolveDataDir();
+        if (!dataDir.exists() && !dataDir.mkdirs()) {
+            throw new ExceptionInInitializerError("无法创建数据库目录: " + dataDir.getAbsolutePath());
         }
-        File dir = new File(dataDir);
-        if (!dir.exists()) dir.mkdirs();
-        DB_URL = "jdbc:h2:" + dataDir + File.separator + "bom_data;AUTO_SERVER=TRUE";
+        DB_URL = "jdbc:h2:" + new File(dataDir, "bom_data").getAbsolutePath() + ";AUTO_SERVER=TRUE";
     }
 
     private static DatabaseManager instance;
     private Connection connection;
 
     private DatabaseManager() {}
+
+    private static File resolveDataDir() {
+        String configuredDir = System.getProperty("bom.data.dir");
+        if (configuredDir != null && !configuredDir.trim().isEmpty()) {
+            return new File(configuredDir.trim()).getAbsoluteFile();
+        }
+        return new File(resolveApplicationDir(), "data").getAbsoluteFile();
+    }
+
+    private static File resolveApplicationDir() {
+        File launcherDir = resolveLauncherDir();
+        if (launcherDir != null) {
+            return launcherDir;
+        }
+
+        File codeSourceDir = resolveCodeSourceDir();
+        if (codeSourceDir != null) {
+            return codeSourceDir;
+        }
+
+        return new File(".").getAbsoluteFile();
+    }
+
+    private static File resolveLauncherDir() {
+        try {
+            String command = ProcessHandle.current().info().command().orElse(null);
+            if (command == null || command.trim().isEmpty()) {
+                return null;
+            }
+
+            File launcher = new File(command);
+            String launcherName = launcher.getName().toLowerCase(Locale.ROOT);
+            if ("java".equals(launcherName) || "java.exe".equals(launcherName)
+                    || "javaw".equals(launcherName) || "javaw.exe".equals(launcherName)) {
+                return null;
+            }
+
+            File parent = launcher.getParentFile();
+            return parent == null ? null : parent.getAbsoluteFile();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static File resolveCodeSourceDir() {
+        try {
+            CodeSource codeSource = DatabaseManager.class.getProtectionDomain().getCodeSource();
+            if (codeSource == null || codeSource.getLocation() == null) {
+                return null;
+            }
+
+            URI locationUri = codeSource.getLocation().toURI();
+            File location = Paths.get(locationUri).toFile();
+            File baseDir = location.isFile() ? location.getParentFile() : location;
+            if (baseDir == null) {
+                return null;
+            }
+
+            if ("app".equalsIgnoreCase(baseDir.getName()) && baseDir.getParentFile() != null) {
+                return baseDir.getParentFile().getAbsoluteFile();
+            }
+
+            if ("classes".equalsIgnoreCase(baseDir.getName())) {
+                File targetDir = baseDir.getParentFile();
+                if (targetDir != null && "target".equalsIgnoreCase(targetDir.getName())
+                        && targetDir.getParentFile() != null) {
+                    return targetDir.getParentFile().getAbsoluteFile();
+                }
+            }
+
+            if ("target".equalsIgnoreCase(baseDir.getName()) && baseDir.getParentFile() != null) {
+                return baseDir.getParentFile().getAbsoluteFile();
+            }
+
+            return baseDir.getAbsoluteFile();
+        } catch (URISyntaxException | RuntimeException e) {
+            return null;
+        }
+    }
 
     public static synchronized DatabaseManager getInstance() {
         if (instance == null) {
