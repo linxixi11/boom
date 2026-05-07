@@ -25,6 +25,8 @@ BOM 管理系统，Java Swing 桌面应用，使用 H2 本地数据库。
 - Maven
 - WiX Toolset 3.x，需包含 `candle.exe` 和 `light.exe`
 
+注意：只安装新版 WiX Toolset 且只有 `wix.exe` 时，不能满足 JDK 17 `jpackage` 生成 `.exe`/`.msi` 对 `candle.exe` 和 `light.exe` 的要求。
+
 ### 构建命令
 
 在 Windows 终端中执行：
