@@ -2,6 +2,7 @@ package com.bom.model;
 
 public class Component {
     public static final String TYPE_PART = "PART";
+    public static final String TYPE_PURCHASE = "PURCHASE";
     public static final String TYPE_SEMI = "SEMI";
     public static final String TYPE_PRODUCT = "PRODUCT";
 

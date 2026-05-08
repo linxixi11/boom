@@ -5,6 +5,7 @@ import com.bom.dao.ComponentDao;
 import com.bom.model.BomItem;
 import com.bom.model.Component;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
@@ -78,7 +79,7 @@ public class BomService {
             Component comp = compCache.get(componentId);
             if (comp == null) return;
 
-            if (Component.TYPE_PART.equals(comp.getType())) {
+            if (isLeafType(comp.getType())) {
                 partQuantities.merge(componentId, multiplier, Double::sum);
                 return;
             }
@@ -108,7 +109,7 @@ public class BomService {
             List<String> currentPath = new ArrayList<>(path);
             currentPath.add(pathLabel(comp));
 
-            if (Component.TYPE_PART.equals(comp.getType())) {
+            if (isLeafType(comp.getType())) {
                 PartSummaryAccumulator acc = partSummaries.computeIfAbsent(componentId, k -> new PartSummaryAccumulator());
                 acc.totalQty += multiplier;
                 acc.paths.add(String.join(" > ", currentPath));
@@ -134,8 +135,13 @@ public class BomService {
     private String typeLabel(String type) {
         if (Component.TYPE_PRODUCT.equals(type)) return "成品";
         if (Component.TYPE_SEMI.equals(type)) return "半成品";
+        if (Component.TYPE_PURCHASE.equals(type)) return "外购件";
         if (Component.TYPE_PART.equals(type)) return "零件";
         return type == null ? "" : type;
+    }
+
+    private boolean isLeafType(String type) {
+        return Component.TYPE_PART.equals(type) || Component.TYPE_PURCHASE.equals(type);
     }
 
     private String stockRemark(double totalQty, double stockQty, double deductedQty, double shortageQty) {
@@ -153,10 +159,10 @@ public class BomService {
      */
     public void exportCsv(List<BomSummaryRow> rows, File file) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "GBK"))) {
-            writer.write("层级路径,零件编号,零件名称,规格型号,材质,单位,总需求,库存数量,扣库存,需补数量,库存备注");
+            writer.write("物料编号,物料名称,规格型号,材质,单位,总需求,库存数量,扣库存,需补数量,库存备注");
             writer.newLine();
             for (BomSummaryRow row : rows) {
-                writer.write(escapeCsv(row.hierarchyPath) + "," + escapeCsv(row.code) + "," + escapeCsv(row.name) + "," +
+                writer.write(escapeCsv(row.code) + "," + escapeCsv(row.name) + "," +
                     escapeCsv(row.spec) + "," + escapeCsv(row.material) + "," +
                     escapeCsv(row.unit) + "," + formatQty(row.totalQty) + "," +
                     formatQty(row.stockQty) + "," + formatQty(row.deductedQty) + "," +
@@ -172,6 +178,7 @@ public class BomService {
     public void exportExcel(List<BomSummaryRow> rows, File file) throws IOException {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("BOM汇总");
+            configurePrint(sheet);
 
             // 表头样式
             CellStyle headerStyle = workbook.createCellStyle();
@@ -182,9 +189,20 @@ public class BomService {
             headerStyle.setAlignment(HorizontalAlignment.CENTER);
             headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
             headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            applyBorder(headerStyle);
+
+            CellStyle textStyle = workbook.createCellStyle();
+            textStyle.setWrapText(true);
+            textStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+            applyBorder(textStyle);
+
+            CellStyle numberStyle = workbook.createCellStyle();
+            numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0.###"));
+            numberStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+            applyBorder(numberStyle);
 
             // 标题行
-            String[] headers = {"层级路径", "零件编号", "零件名称", "规格型号", "材质", "单位", "总需求", "库存数量", "扣库存", "需补数量", "库存备注"};
+            String[] headers = {"物料编号", "物料名称", "规格型号", "材质", "单位", "总需求", "库存数量", "扣库存", "需补数量", "库存备注"};
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
@@ -196,22 +214,23 @@ public class BomService {
             int rowNum = 1;
             for (BomSummaryRow row : rows) {
                 Row r = sheet.createRow(rowNum++);
-                r.createCell(0).setCellValue(row.hierarchyPath != null ? row.hierarchyPath : "");
-                r.createCell(1).setCellValue(row.code != null ? row.code : "");
-                r.createCell(2).setCellValue(row.name != null ? row.name : "");
-                r.createCell(3).setCellValue(row.spec != null ? row.spec : "");
-                r.createCell(4).setCellValue(row.material != null ? row.material : "");
-                r.createCell(5).setCellValue(row.unit != null ? row.unit : "");
-                r.createCell(6).setCellValue(row.totalQty);
-                r.createCell(7).setCellValue(row.stockQty);
-                r.createCell(8).setCellValue(row.deductedQty);
-                r.createCell(9).setCellValue(row.shortageQty);
-                r.createCell(10).setCellValue(row.stockRemark != null ? row.stockRemark : "");
+                createTextCell(r, 0, row.code, textStyle);
+                createTextCell(r, 1, row.name, textStyle);
+                createTextCell(r, 2, row.spec, textStyle);
+                createTextCell(r, 3, row.material, textStyle);
+                createTextCell(r, 4, row.unit, textStyle);
+                createNumberCell(r, 5, row.totalQty, numberStyle);
+                createNumberCell(r, 6, row.stockQty, numberStyle);
+                createNumberCell(r, 7, row.deductedQty, numberStyle);
+                createNumberCell(r, 8, row.shortageQty, numberStyle);
+                createTextCell(r, 9, row.stockRemark, textStyle);
             }
 
-            // 自动列宽
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
+            sheet.createFreezePane(0, 1);
+            sheet.setAutoFilter(new CellRangeAddress(0, Math.max(0, rowNum - 1), 0, headers.length - 1));
+            int[] widths = {14, 22, 24, 16, 10, 12, 12, 12, 12, 34};
+            for (int i = 0; i < widths.length; i++) {
+                sheet.setColumnWidth(i, widths[i] * 256);
             }
 
             try (FileOutputStream fos = new FileOutputStream(file)) {
@@ -254,7 +273,7 @@ public class BomService {
     public void exportProductBomCsv(List<Long> productIds, File file) throws SQLException, IOException {
         List<BomExportRow> rows = exportProductBom(productIds);
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "GBK"))) {
-            writer.write("成品编号,成品名称,零件编号,零件名称,规格型号,材质,单位,用量");
+            writer.write("成品编号,成品名称,物料编号,物料名称,规格型号,材质,单位,用量");
             writer.newLine();
             for (BomExportRow row : rows) {
                 writer.write(escapeCsv(row.productCode) + "," + escapeCsv(row.productName) + "," +
@@ -295,7 +314,7 @@ public class BomService {
             headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
             headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
-            String[] headers = {"零件编号", "零件名称", "规格型号", "材质", "单位", "用量"};
+            String[] headers = {"物料编号", "物料名称", "规格型号", "材质", "单位", "用量"};
 
             for (Long productId : productIds) {
                 Component product = productMap.get(productId);
@@ -305,6 +324,7 @@ public class BomService {
                 String sheetName = product.getCode() != null ? product.getCode() : String.valueOf(productId);
                 if (sheetName.length() > 31) sheetName = sheetName.substring(0, 31);
                 Sheet sheet = workbook.createSheet(sheetName);
+                configurePrint(sheet);
 
                 // 成品信息行
                 Row infoRow = sheet.createRow(0);
@@ -354,6 +374,42 @@ public class BomService {
             return String.valueOf((long) qty);
         }
         return String.valueOf(qty);
+    }
+
+    private void configurePrint(Sheet sheet) {
+        sheet.setFitToPage(true);
+        sheet.setMargin(Sheet.TopMargin, 0.35);
+        sheet.setMargin(Sheet.BottomMargin, 0.35);
+        sheet.setMargin(Sheet.LeftMargin, 0.25);
+        sheet.setMargin(Sheet.RightMargin, 0.25);
+        PrintSetup printSetup = sheet.getPrintSetup();
+        printSetup.setLandscape(true);
+        printSetup.setPaperSize(PrintSetup.A4_PAPERSIZE);
+        printSetup.setFitWidth((short) 1);
+        printSetup.setFitHeight((short) 0);
+    }
+
+    private void applyBorder(CellStyle style) {
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        style.setTopBorderColor(IndexedColors.GREY_40_PERCENT.getIndex());
+        style.setBottomBorderColor(IndexedColors.GREY_40_PERCENT.getIndex());
+        style.setLeftBorderColor(IndexedColors.GREY_40_PERCENT.getIndex());
+        style.setRightBorderColor(IndexedColors.GREY_40_PERCENT.getIndex());
+    }
+
+    private void createTextCell(Row row, int index, String value, CellStyle style) {
+        Cell cell = row.createCell(index);
+        cell.setCellValue(value == null ? "" : value);
+        cell.setCellStyle(style);
+    }
+
+    private void createNumberCell(Row row, int index, double value, CellStyle style) {
+        Cell cell = row.createCell(index);
+        cell.setCellValue(value);
+        cell.setCellStyle(style);
     }
 
     private static class PartSummaryAccumulator {

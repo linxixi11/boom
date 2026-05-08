@@ -37,10 +37,13 @@ public class ProductPanel extends JPanel {
         JButton editBtn = UIStyle.button("编辑");
         JButton copyBtn = UIStyle.button("复制");
         JButton delBtn = UIStyle.dangerButton("删除");
-        leftHeader.add(UIStyle.buttonRowRight(addBtn, editBtn, copyBtn, delBtn), BorderLayout.EAST);
+        JButton moveToSemiBtn = UIStyle.button("转为半成品");
+        JButton exportBtn = UIStyle.button("导出清单");
+        JButton importBtn = UIStyle.button("导入清单");
+        leftHeader.add(UIStyle.buttonRowRight(addBtn, editBtn, copyBtn, delBtn, moveToSemiBtn, exportBtn, importBtn), BorderLayout.EAST);
         leftPanel.add(leftHeader, BorderLayout.NORTH);
 
-        listModel = new DefaultTableModel(new String[]{"ID", "编号", "名称", "规格", "单位"}, 0) {
+        listModel = new DefaultTableModel(new String[]{"ID", "编号", "名称", "规格", "单位", "材质"}, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
             @Override public Class<?> getColumnClass(int c) { return c == 0 ? Long.class : String.class; }
         };
@@ -89,6 +92,11 @@ public class ProductPanel extends JPanel {
         editBtn.addActionListener(e -> editSelected());
         copyBtn.addActionListener(e -> copySelected());
         delBtn.addActionListener(e -> deleteSelected());
+        moveToSemiBtn.addActionListener(e -> moveSelectedTo(Component.TYPE_SEMI, "半成品"));
+        exportBtn.addActionListener(e -> ComponentSheetActions.exportAll(this));
+        importBtn.addActionListener(e -> {
+            if (ComponentSheetActions.importAll(this)) refreshData();
+        });
 
         addItemBtn.addActionListener(e -> {
             Long pid = selectedListId();
@@ -101,9 +109,12 @@ public class ProductPanel extends JPanel {
             showEditQuantityDialog(bomId);
         });
         delItemBtn.addActionListener(e -> {
-            Long bomId = selectedBomId();
-            if (bomId == null) { JOptionPane.showMessageDialog(this, "请先选择子件"); return; }
-            try { bomItemDao.delete(bomId); loadBomItems(); }
+            java.util.List<Long> bomIds = selectedBomIds();
+            if (bomIds.isEmpty()) { JOptionPane.showMessageDialog(this, "请先选择子件"); return; }
+            try {
+                for (Long bomId : bomIds) bomItemDao.delete(bomId);
+                loadBomItems();
+            }
             catch (SQLException ex) { JOptionPane.showMessageDialog(this, ex.getMessage()); }
         });
 
@@ -120,6 +131,22 @@ public class ProductPanel extends JPanel {
         int row = bomTable.getSelectedRow();
         if (row < 0) return null;
         return (Long) bomModel.getValueAt(bomTable.convertRowIndexToModel(row), 0);
+    }
+
+    private java.util.List<Long> selectedListIds() {
+        java.util.List<Long> ids = new ArrayList<>();
+        for (int row : listTable.getSelectedRows()) {
+            ids.add((Long) listModel.getValueAt(listTable.convertRowIndexToModel(row), 0));
+        }
+        return ids;
+    }
+
+    private java.util.List<Long> selectedBomIds() {
+        java.util.List<Long> ids = new ArrayList<>();
+        for (int row : bomTable.getSelectedRows()) {
+            ids.add((Long) bomModel.getValueAt(bomTable.convertRowIndexToModel(row), 0));
+        }
+        return ids;
     }
 
     private void editSelected() {
@@ -141,11 +168,25 @@ public class ProductPanel extends JPanel {
     }
 
     private void deleteSelected() {
-        Long id = selectedListId();
-        if (id == null) { JOptionPane.showMessageDialog(this, "请先选择成品"); return; }
-        if (JOptionPane.showConfirmDialog(this, "确认删除？", "确认", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            try { componentDao.delete(id); refreshData(); }
+        java.util.List<Long> ids = selectedListIds();
+        if (ids.isEmpty()) { JOptionPane.showMessageDialog(this, "请先选择成品"); return; }
+        String message = ids.size() == 1 ? "确认删除该成品？" : "确认删除选中的 " + ids.size() + " 个成品？相关 BOM 引用也会移除。";
+        if (JOptionPane.showConfirmDialog(this, message, "确认", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            try { componentDao.deleteMany(ids); refreshData(); }
             catch (SQLException ex) { JOptionPane.showMessageDialog(this, "删除失败: " + ex.getMessage()); }
+        }
+    }
+
+    private void moveSelectedTo(String targetType, String targetLabel) {
+        java.util.List<Long> ids = selectedListIds();
+        if (ids.isEmpty()) { JOptionPane.showMessageDialog(this, "请先选择成品"); return; }
+        if (JOptionPane.showConfirmDialog(this, "确认将选中的 " + ids.size() + " 个成品转为" + targetLabel + "？",
+                "确认", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
+        try {
+            for (Long id : ids) componentDao.updateType(id, targetType);
+            refreshData();
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "移动失败: " + ex.getMessage());
         }
     }
 
@@ -153,7 +194,7 @@ public class ProductPanel extends JPanel {
         try {
             listModel.setRowCount(0);
             for (Component c : componentDao.findByType(Component.TYPE_PRODUCT)) {
-                listModel.addRow(new Object[]{c.getId(), c.getCode(), c.getName(), c.getSpec(), c.getUnit()});
+                listModel.addRow(new Object[]{c.getId(), c.getCode(), c.getName(), c.getSpec(), c.getUnit(), c.getMaterial()});
             }
             bomModel.setRowCount(0);
         } catch (SQLException e) {
@@ -177,6 +218,7 @@ public class ProductPanel extends JPanel {
 
     private static String typeLabel(String t) {
         if (Component.TYPE_PART.equals(t)) return "零件";
+        if (Component.TYPE_PURCHASE.equals(t)) return "外购件";
         if (Component.TYPE_SEMI.equals(t)) return "半成品";
         if (Component.TYPE_PRODUCT.equals(t)) return "成品";
         return t;
@@ -186,6 +228,7 @@ public class ProductPanel extends JPanel {
         List<Component> candidates = new ArrayList<>();
         candidates.addAll(componentDao.findByType(Component.TYPE_SEMI));
         candidates.addAll(componentDao.findByType(Component.TYPE_PART));
+        candidates.addAll(componentDao.findByType(Component.TYPE_PURCHASE));
         return candidates;
     }
 
@@ -216,12 +259,14 @@ public class ProductPanel extends JPanel {
             (copyMode ? (safe(source.getName()) + " (副本)") : safe(source.getName())));
         JTextField specField = new JTextField(source == null ? "" : safe(source.getSpec()));
         JTextField unitField = new JTextField(source == null ? "" : safe(source.getUnit()));
+        JTextField materialField = new JTextField(source == null ? "" : safe(source.getMaterial()));
         JTextField remarkField = new JTextField(source == null ? "" : safe(source.getRemark()));
         PartPanel.addFormRow(infoPanel, g, 0, "编号", codeField);
         PartPanel.addFormRow(infoPanel, g, 1, "名称", nameField);
         PartPanel.addFormRow(infoPanel, g, 2, "规格", specField);
         PartPanel.addFormRow(infoPanel, g, 3, "单位", unitField);
-        PartPanel.addFormRow(infoPanel, g, 4, "备注", remarkField);
+        PartPanel.addFormRow(infoPanel, g, 4, "材质", materialField);
+        PartPanel.addFormRow(infoPanel, g, 5, "备注", remarkField);
         dialog.add(infoPanel, BorderLayout.NORTH);
 
         // 子件
@@ -316,6 +361,7 @@ public class ProductPanel extends JPanel {
                 c.setName(name);
                 c.setSpec(specField.getText().trim());
                 c.setUnit(unitField.getText().trim());
+                c.setMaterial(materialField.getText().trim());
                 c.setRemark(remarkField.getText().trim());
                 if (isNew) {
                     componentDao.insert(c);

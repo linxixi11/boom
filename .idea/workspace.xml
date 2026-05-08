@@ -5,7 +5,59 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fe2101ef-7541-45a5-a882-4844b86e3dcc" name="Changes" comment="123">
+      <change afterPath="$PROJECT_DIR$/data/bom_data.mv.db" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/bom/service/ComponentSheetService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/bom/ui/ComponentSheetActions.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/com/bom/service/ComponentSheetService$ImportResult.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/com/bom/service/ComponentSheetService.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/ComponentSheetActions.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/dao/ComponentDao.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/dao/ComponentDao.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/db/TestDataLoader.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/model/Component.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/model/Component.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/service/BomService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/service/BomService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/ui/BomPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/ui/BomPanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/ui/MainFrame.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/ui/MainFrame.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/ui/PartPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/ui/PartPanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/ui/ProductPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/ui/ProductPanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/ui/SemiProductPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/ui/SemiProductPanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/bom-manager-1.0.0.jar" beforeDir="false" afterPath="$PROJECT_DIR$/target/bom-manager-1.0.0.jar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/Main.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/Main.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/dao/ComponentDao.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/dao/ComponentDao.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/db/DatabaseManager.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/db/DatabaseManager.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/db/TestDataLoader.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/model/Component.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/model/Component.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$BomExportRow.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$BomExportRow.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$BomRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$BomRequest.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$BomSummaryRow.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$BomSummaryRow.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$PartSummaryAccumulator.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$PartSummaryAccumulator.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/service/BomService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/service/BomService.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$3.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$3.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$4.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$4.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$5.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$5.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$6.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$6.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/MainFrame.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/MainFrame.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel$ComponentCallback.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel$ComponentCallback.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$3.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$3.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$4.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$4.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$5.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$5.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/SemiProductPanel$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/SemiProductPanel$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/SemiProductPanel$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/SemiProductPanel$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/SemiProductPanel$3.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/SemiProductPanel$3.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/SemiProductPanel$4.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/SemiProductPanel$4.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/SemiProductPanel$5.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/SemiProductPanel$5.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/SemiProductPanel.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/SemiProductPanel.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/original-bom-manager-1.0.0.jar" beforeDir="false" afterPath="$PROJECT_DIR$/target/original-bom-manager-1.0.0.jar" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -19,23 +71,23 @@
     </option>
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="22" />
+    <option name="cachedIndexableFilesCount" value="32" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "linxixi11"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;linxixi11&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/linxixi11/boom.git",
-    "accountId": "cb151456-ded2-4548-93d6-d6d8fc63a947"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/linxixi11/boom.git&quot;,
+    &quot;accountId&quot;: &quot;cb151456-ded2-4548-93d6-d6d8fc63a947&quot;
   }
-}]]></component>
+}</component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
@@ -64,9 +116,11 @@
     "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "master",
+    "git.auto.fetch.suggestion.counter": "1",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "/Users/shenyiyangdenanren/workData/boom",
     "node.js.detected.package.eslint": "true",
@@ -110,6 +164,7 @@
       <updated>1777541750115</updated>
       <workItem from="1777541751146" duration="95000" />
       <workItem from="1777542192801" duration="11479000" />
+      <workItem from="1778121364103" duration="4067000" />
     </task>
     <task id="LOCAL-00001" summary="123">
       <option name="closed" value="true" />
@@ -119,7 +174,23 @@
       <option name="project" value="LOCAL" />
       <updated>1778044268614</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="123">
+      <option name="closed" value="true" />
+      <created>1778121370010</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1778121370010</updated>
+    </task>
+    <task id="LOCAL-00003" summary="123">
+      <option name="closed" value="true" />
+      <created>1778121398193</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1778121398193</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

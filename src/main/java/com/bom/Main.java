@@ -1,7 +1,6 @@
 package com.bom;
 
 import com.bom.db.DatabaseManager;
-import com.bom.db.TestDataLoader;
 import com.bom.ui.MainFrame;
 import com.bom.ui.UIStyle;
 
@@ -13,7 +12,6 @@ public class Main {
         UIStyle.install();
         try {
             DatabaseManager.getInstance().initDatabase();
-            TestDataLoader.loadIfEmpty();
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "数据库初始化失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
             System.exit(1);

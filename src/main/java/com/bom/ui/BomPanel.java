@@ -12,6 +12,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.print.PageFormat;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -42,10 +43,12 @@ public class BomPanel extends JPanel {
     private final JLabel pickedCount;
 
     private final DefaultTableModel resultModel;
+    private final JTable resultTable;
     private final JLabel resultCount;
 
     private final JProgressBar progressBar;
     private final JButton generateBtn;
+    private PageFormat resultPageFormat = TablePrintSupport.defaultLandscapeA4();
     private List<BomSummaryRow> currentRows = new ArrayList<>();
     private List<Component> allCandidates = new ArrayList<>();
 
@@ -62,7 +65,7 @@ public class BomPanel extends JPanel {
 
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         filterPanel.setOpaque(false);
-        typeFilter = new JComboBox<>(new String[]{"全部", "成品", "半成品", "零件"});
+        typeFilter = new JComboBox<>(new String[]{"全部", "成品", "半成品", "零件", "外购件"});
         typeFilter.setFont(UIStyle.FONT);
         searchField = new JTextField(14);
         searchField.setFont(UIStyle.FONT);
@@ -133,7 +136,7 @@ public class BomPanel extends JPanel {
         progressBar.setVisible(false);
         JPanel resultHeader = new JPanel(new BorderLayout(6, 0));
         resultHeader.setOpaque(false);
-        resultHeader.add(UIStyle.sectionLabel("BOM 汇总结果（层级 / 库存）"), BorderLayout.WEST);
+        resultHeader.add(UIStyle.sectionLabel("BOM 汇总结果（库存）"), BorderLayout.WEST);
         JPanel eastPanel = new JPanel(new BorderLayout(8, 0));
         eastPanel.setOpaque(false);
         eastPanel.add(progressBar, BorderLayout.CENTER);
@@ -142,16 +145,20 @@ public class BomPanel extends JPanel {
         rightPanel.add(resultHeader, BorderLayout.NORTH);
 
         resultModel = new DefaultTableModel(
-            new String[]{"层级路径", "零件编号", "零件名称", "规格型号", "材质", "单位", "总需求", "库存数量", "扣库存", "需补数量", "库存备注"}, 0) {
+            new String[]{"物料编号", "物料名称", "规格型号", "材质", "单位", "总需求", "库存数量", "扣库存", "需补数量", "库存备注"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-        JTable resultTable = UIStyle.createTable(resultModel);
-        resultTable.getColumnModel().getColumn(0).setPreferredWidth(300);
+        resultTable = UIStyle.createTable(resultModel);
+        resultTable.getColumnModel().getColumn(0).setPreferredWidth(110);
+        resultTable.getColumnModel().getColumn(1).setPreferredWidth(150);
         rightPanel.add(UIStyle.wrap(resultTable), BorderLayout.CENTER);
 
         JButton csvBtn = UIStyle.button("导出 CSV");
         JButton excelBtn = UIStyle.button("导出 Excel");
-        rightPanel.add(UIStyle.buttonRow(csvBtn, excelBtn), BorderLayout.SOUTH);
+        JButton pageSetupBtn = UIStyle.button("页面设置");
+        JButton previewBtn = UIStyle.button("打印预览");
+        JButton printBtn = UIStyle.primaryButton("打印");
+        rightPanel.add(UIStyle.buttonRow(csvBtn, excelBtn, pageSetupBtn, previewBtn, printBtn), BorderLayout.SOUTH);
 
         JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftSplit, rightPanel);
         mainSplit.setDividerLocation(460);
@@ -187,6 +194,9 @@ public class BomPanel extends JPanel {
         generateBtn.addActionListener(e -> generateBom());
         csvBtn.addActionListener(e -> exportCsv());
         excelBtn.addActionListener(e -> exportExcel());
+        pageSetupBtn.addActionListener(e -> resultPageFormat = TablePrintSupport.showPageSetup(this, resultPageFormat));
+        previewBtn.addActionListener(e -> TablePrintSupport.showPreview(this, resultTable, resultPageFormat, "BOM 汇总清单"));
+        printBtn.addActionListener(e -> TablePrintSupport.print(this, resultTable, resultPageFormat, "BOM 汇总清单"));
 
         refreshData();
     }
@@ -197,6 +207,7 @@ public class BomPanel extends JPanel {
             allCandidates.addAll(componentDao.findByType(Component.TYPE_PRODUCT));
             allCandidates.addAll(componentDao.findByType(Component.TYPE_SEMI));
             allCandidates.addAll(componentDao.findByType(Component.TYPE_PART));
+            allCandidates.addAll(componentDao.findByType(Component.TYPE_PURCHASE));
             applyFilter();
             // 保留已选项中仍然存在的 ID
             Map<Long, Component> existing = new LinkedHashMap<>();
@@ -230,6 +241,7 @@ public class BomPanel extends JPanel {
     private static String typeLabel(String type) {
         return Component.TYPE_PRODUCT.equals(type) ? "成品"
              : Component.TYPE_SEMI.equals(type) ? "半成品"
+             : Component.TYPE_PURCHASE.equals(type) ? "外购件"
              : Component.TYPE_PART.equals(type) ? "零件"
              : type;
     }
@@ -256,6 +268,7 @@ public class BomPanel extends JPanel {
         if ("成品".equals(filter)) return Component.TYPE_PRODUCT.equals(c.getType());
         if ("半成品".equals(filter)) return Component.TYPE_SEMI.equals(c.getType());
         if ("零件".equals(filter)) return Component.TYPE_PART.equals(c.getType());
+        if ("外购件".equals(filter)) return Component.TYPE_PURCHASE.equals(c.getType());
         return true;
     }
 
@@ -368,7 +381,7 @@ public class BomPanel extends JPanel {
                     resultModel.setRowCount(0);
                     for (BomSummaryRow row : rows) {
                         resultModel.addRow(new Object[]{
-                            row.hierarchyPath, row.code, row.name, row.spec, row.material, row.unit,
+                            row.code, row.name, row.spec, row.material, row.unit,
                             formatQty(row.totalQty), formatQty(row.stockQty), formatQty(row.deductedQty),
                             formatQty(row.shortageQty), row.stockRemark
                         });
