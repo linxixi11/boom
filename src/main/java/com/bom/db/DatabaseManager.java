@@ -150,7 +150,72 @@ public class DatabaseManager {
             ")"
         );
 
+        stmt.execute(
+            "CREATE TABLE IF NOT EXISTS bom_order (" +
+            "  id BIGINT AUTO_INCREMENT PRIMARY KEY," +
+            "  project_name VARCHAR(200) NOT NULL," +
+            "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+            ")"
+        );
+
+        stmt.execute(
+            "CREATE TABLE IF NOT EXISTS bom_order_item (" +
+            "  id BIGINT AUTO_INCREMENT PRIMARY KEY," +
+            "  order_id BIGINT NOT NULL," +
+            "  seq_no INT NOT NULL," +
+            "  component_type VARCHAR(20)," +
+            "  component_code VARCHAR(50)," +
+            "  component_name VARCHAR(100)," +
+            "  spec VARCHAR(200)," +
+            "  material VARCHAR(100)," +
+            "  unit VARCHAR(20)," +
+            "  total_qty DOUBLE DEFAULT 0," +
+            "  stock_qty DOUBLE DEFAULT 0," +
+            "  deducted_qty DOUBLE DEFAULT 0," +
+            "  shortage_qty DOUBLE DEFAULT 0," +
+            "  stock_remark VARCHAR(500)," +
+            "  FOREIGN KEY (order_id) REFERENCES bom_order(id) ON DELETE CASCADE" +
+            ")"
+        );
+
         stmt.close();
+        initOptionTable(conn);
+    }
+
+    private void initOptionTable(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute(
+                "CREATE TABLE IF NOT EXISTS app_option (" +
+                "  id BIGINT AUTO_INCREMENT PRIMARY KEY," +
+                "  category VARCHAR(30) NOT NULL," +
+                "  option_value VARCHAR(100) NOT NULL," +
+                "  sort_order INT DEFAULT 0," +
+                "  UNIQUE(category, option_value)" +
+                ")"
+            );
+        }
+        seedOptionsIfEmpty(conn, "MATERIAL", new String[]{"敷铝锌板", "冷轧板"});
+        seedOptionsIfEmpty(conn, "UNIT", new String[]{"个", "张", "米", "台", "套", "件"});
+    }
+
+    private void seedOptionsIfEmpty(Connection conn, String category, String[] values) throws SQLException {
+        try (PreparedStatement countPs = conn.prepareStatement("SELECT COUNT(*) FROM app_option WHERE category = ?")) {
+            countPs.setString(1, category);
+            try (ResultSet rs = countPs.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) return;
+            }
+        }
+
+        try (PreparedStatement insertPs = conn.prepareStatement(
+                "INSERT INTO app_option (category, option_value, sort_order) VALUES (?, ?, ?)")) {
+            for (int i = 0; i < values.length; i++) {
+                insertPs.setString(1, category);
+                insertPs.setString(2, values[i]);
+                insertPs.setInt(3, i + 1);
+                insertPs.addBatch();
+            }
+            insertPs.executeBatch();
+        }
     }
 
     public void close() {

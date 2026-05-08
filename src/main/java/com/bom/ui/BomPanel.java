@@ -5,12 +5,14 @@ import com.bom.model.Component;
 import com.bom.service.BomService;
 import com.bom.service.BomService.BomRequest;
 import com.bom.service.BomService.BomSummaryRow;
+import com.bom.service.OrderService;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.print.PageFormat;
 import java.awt.event.MouseAdapter;
@@ -24,7 +26,7 @@ import java.util.Map;
 
 /**
  * 候选/已选两栏 + 结果区。
- * 左上：候选成品/半成品（搜索 + 类型过滤）
+ * 左上：候选成品/半成品/零件/外购件（搜索 + 类型过滤）
  * 左下：已选清单
  * 右侧：BOM 汇总结果 + 导出
  */
@@ -44,10 +46,15 @@ public class BomPanel extends JPanel {
 
     private final DefaultTableModel resultModel;
     private final JTable resultTable;
+    private final TableRowSorter<DefaultTableModel> resultSorter;
+    private final JTextField projectNameField;
+    private final JTextField resultSearchField;
+    private final JComboBox<String> resultTypeFilter;
     private final JLabel resultCount;
 
     private final JProgressBar progressBar;
     private final JButton generateBtn;
+    private final OrderService orderService = new OrderService();
     private PageFormat resultPageFormat = TablePrintSupport.defaultLandscapeA4();
     private List<BomSummaryRow> currentRows = new ArrayList<>();
     private List<Component> allCandidates = new ArrayList<>();
@@ -61,7 +68,7 @@ public class BomPanel extends JPanel {
         JPanel candPanel = UIStyle.section();
         JPanel candHeader = new JPanel(new BorderLayout(8, 0));
         candHeader.setOpaque(false);
-        candHeader.add(UIStyle.sectionLabel("候选成品 / 半成品 / 零件"), BorderLayout.WEST);
+        candHeader.add(UIStyle.sectionLabel("候选成品 / 半成品 / 零件 / 外购件"), BorderLayout.WEST);
 
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         filterPanel.setOpaque(false);
@@ -136,7 +143,14 @@ public class BomPanel extends JPanel {
         progressBar.setVisible(false);
         JPanel resultHeader = new JPanel(new BorderLayout(6, 0));
         resultHeader.setOpaque(false);
-        resultHeader.add(UIStyle.sectionLabel("BOM 汇总结果（库存）"), BorderLayout.WEST);
+        JPanel resultTitlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        resultTitlePanel.setOpaque(false);
+        resultTitlePanel.add(UIStyle.sectionLabel("BOM 汇总结果（库存）"));
+        resultTitlePanel.add(new JLabel("项目名称"));
+        projectNameField = new JTextField(14);
+        projectNameField.setFont(UIStyle.FONT);
+        resultTitlePanel.add(projectNameField);
+        resultHeader.add(resultTitlePanel, BorderLayout.WEST);
         JPanel eastPanel = new JPanel(new BorderLayout(8, 0));
         eastPanel.setOpaque(false);
         eastPanel.add(progressBar, BorderLayout.CENTER);
@@ -145,20 +159,41 @@ public class BomPanel extends JPanel {
         rightPanel.add(resultHeader, BorderLayout.NORTH);
 
         resultModel = new DefaultTableModel(
-            new String[]{"物料编号", "物料名称", "规格型号", "材质", "单位", "总需求", "库存数量", "扣库存", "需补数量", "库存备注"}, 0) {
+            new String[]{"序号", "类型", "物料编号", "物料名称", "规格型号", "材质", "单位", "总需求", "库存数量", "扣库存", "需补数量", "库存备注"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         resultTable = UIStyle.createTable(resultModel);
-        resultTable.getColumnModel().getColumn(0).setPreferredWidth(110);
-        resultTable.getColumnModel().getColumn(1).setPreferredWidth(150);
-        rightPanel.add(UIStyle.wrap(resultTable), BorderLayout.CENTER);
+        resultSorter = new TableRowSorter<>(resultModel);
+        resultTable.setRowSorter(resultSorter);
+        resultTable.getColumnModel().getColumn(0).setMaxWidth(52);
+        resultTable.getColumnModel().getColumn(1).setMaxWidth(70);
+        resultTable.getColumnModel().getColumn(2).setPreferredWidth(110);
+        resultTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+
+        JPanel resultCenter = new JPanel(new BorderLayout(6, 6));
+        resultCenter.setOpaque(false);
+        JPanel resultFilterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        resultFilterPanel.setOpaque(false);
+        resultTypeFilter = new JComboBox<>(new String[]{"全部", "成品", "半成品", "零件", "外购件"});
+        resultTypeFilter.setFont(UIStyle.FONT);
+        resultSearchField = new JTextField(16);
+        resultSearchField.setFont(UIStyle.FONT);
+        resultSearchField.setToolTipText("筛选结果中的编号 / 名称 / 规格 / 材质");
+        resultFilterPanel.add(new JLabel("筛选类型"));
+        resultFilterPanel.add(resultTypeFilter);
+        resultFilterPanel.add(new JLabel("关键字"));
+        resultFilterPanel.add(resultSearchField);
+        resultCenter.add(resultFilterPanel, BorderLayout.NORTH);
+        resultCenter.add(UIStyle.wrap(resultTable), BorderLayout.CENTER);
+        rightPanel.add(resultCenter, BorderLayout.CENTER);
 
         JButton csvBtn = UIStyle.button("导出 CSV");
         JButton excelBtn = UIStyle.button("导出 Excel");
+        JButton saveOrderBtn = UIStyle.button("存为订单");
         JButton pageSetupBtn = UIStyle.button("页面设置");
         JButton previewBtn = UIStyle.button("打印预览");
         JButton printBtn = UIStyle.primaryButton("打印");
-        rightPanel.add(UIStyle.buttonRow(csvBtn, excelBtn, pageSetupBtn, previewBtn, printBtn), BorderLayout.SOUTH);
+        rightPanel.add(UIStyle.buttonRow(csvBtn, excelBtn, saveOrderBtn, pageSetupBtn, previewBtn, printBtn), BorderLayout.SOUTH);
 
         JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftSplit, rightPanel);
         mainSplit.setDividerLocation(460);
@@ -177,6 +212,14 @@ public class BomPanel extends JPanel {
         searchField.getDocument().addDocumentListener(filterListener);
         typeFilter.addActionListener(e -> applyFilter());
 
+        DocumentListener resultFilterListener = new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { applyResultFilter(); }
+            @Override public void removeUpdate(DocumentEvent e) { applyResultFilter(); }
+            @Override public void changedUpdate(DocumentEvent e) { applyResultFilter(); }
+        };
+        resultSearchField.getDocument().addDocumentListener(resultFilterListener);
+        resultTypeFilter.addActionListener(e -> applyResultFilter());
+
         addBtn.addActionListener(e -> addSelectedToPicked());
         candidateTable.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
@@ -194,9 +237,10 @@ public class BomPanel extends JPanel {
         generateBtn.addActionListener(e -> generateBom());
         csvBtn.addActionListener(e -> exportCsv());
         excelBtn.addActionListener(e -> exportExcel());
+        saveOrderBtn.addActionListener(e -> saveCurrentOrder());
         pageSetupBtn.addActionListener(e -> resultPageFormat = TablePrintSupport.showPageSetup(this, resultPageFormat));
-        previewBtn.addActionListener(e -> TablePrintSupport.showPreview(this, resultTable, resultPageFormat, "BOM 汇总清单"));
-        printBtn.addActionListener(e -> TablePrintSupport.print(this, resultTable, resultPageFormat, "BOM 汇总清单"));
+        previewBtn.addActionListener(e -> TablePrintSupport.showPreview(this, resultTable, resultPageFormat, printTitle()));
+        printBtn.addActionListener(e -> TablePrintSupport.print(this, resultTable, resultPageFormat, printTitle()));
 
         refreshData();
     }
@@ -315,12 +359,13 @@ public class BomPanel extends JPanel {
     }
 
     private void updateResultCount() {
-        resultCount.setText("共 " + resultModel.getRowCount() + " 行");
+        resultCount.setText("显示 " + resultTable.getRowCount() + " / 共 " + resultModel.getRowCount() + " 行");
     }
 
     private void clearResult() {
         resultModel.setRowCount(0);
         currentRows = new ArrayList<>();
+        applyResultFilter();
         updateResultCount();
     }
 
@@ -381,11 +426,12 @@ public class BomPanel extends JPanel {
                     resultModel.setRowCount(0);
                     for (BomSummaryRow row : rows) {
                         resultModel.addRow(new Object[]{
-                            row.code, row.name, row.spec, row.material, row.unit,
+                            row.sequence, BomService.typeLabel(row.type), row.code, row.name, row.spec, row.material, row.unit,
                             formatQty(row.totalQty), formatQty(row.stockQty), formatQty(row.deductedQty),
                             formatQty(row.shortageQty), row.stockRemark
                         });
                     }
+                    applyResultFilter();
                     updateResultCount();
                     if (rows.isEmpty()) {
                         JOptionPane.showMessageDialog(BomPanel.this, "所选组件没有 BOM 子件");
@@ -424,12 +470,63 @@ public class BomPanel extends JPanel {
             File file = chooser.getSelectedFile();
             if (!file.getName().endsWith(".xlsx")) file = new File(file.getAbsolutePath() + ".xlsx");
             try {
-                bomService.exportExcel(currentRows, file);
+                bomService.exportExcel(currentRows, file, projectNameField.getText().trim());
                 JOptionPane.showMessageDialog(this, "导出成功: " + file.getAbsolutePath());
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "导出失败: " + ex.getMessage());
             }
         }
+    }
+
+    private void applyResultFilter() {
+        String type = (String) resultTypeFilter.getSelectedItem();
+        String keyword = resultSearchField.getText().trim().toLowerCase();
+        java.util.List<RowFilter<DefaultTableModel, Integer>> filters = new ArrayList<>();
+        if (type != null && !"全部".equals(type)) {
+            filters.add(RowFilter.regexFilter("^" + java.util.regex.Pattern.quote(type) + "$", 1));
+        }
+        if (!keyword.isEmpty()) {
+            filters.add(new RowFilter<DefaultTableModel, Integer>() {
+                @Override
+                public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
+                    for (int i = 2; i <= 5; i++) {
+                        Object value = entry.getValue(i);
+                        if (value != null && value.toString().toLowerCase().contains(keyword)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            });
+        }
+        resultSorter.setRowFilter(filters.isEmpty() ? null : RowFilter.andFilter(filters));
+        updateResultCount();
+    }
+
+    private void saveCurrentOrder() {
+        if (currentRows.isEmpty()) { JOptionPane.showMessageDialog(this, "请先生成 BOM 汇总"); return; }
+        String projectName = projectNameField.getText().trim();
+        if (projectName.isEmpty()) {
+            projectName = JOptionPane.showInputDialog(this, "请输入项目名称:", "保存订单", JOptionPane.PLAIN_MESSAGE);
+            if (projectName == null) return;
+            projectName = projectName.trim();
+            if (projectName.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "项目名称不能为空");
+                return;
+            }
+            projectNameField.setText(projectName);
+        }
+        try {
+            long orderId = orderService.saveOrder(projectName, currentRows);
+            JOptionPane.showMessageDialog(this, "已保存到订单，订单ID: " + orderId);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "保存订单失败: " + ex.getMessage());
+        }
+    }
+
+    private String printTitle() {
+        String projectName = projectNameField.getText().trim();
+        return projectName.isEmpty() ? "BOM 汇总清单" : projectName + " - BOM 汇总清单";
     }
 
     private String formatQty(double qty) {

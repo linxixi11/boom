@@ -34,31 +34,41 @@ public class BomService {
         for (Component c : componentDao.findAll()) compCache.put(c.getId(), c);
         Map<Long, List<BomItem>> childCache = bomItemDao.findAllGrouped();
 
-        Map<Long, PartSummaryAccumulator> partSummaries = new LinkedHashMap<>();
+        Map<Long, ComponentSummaryAccumulator> componentSummaries = new LinkedHashMap<>();
         for (BomRequest request : requests) {
             if (request == null || request.componentId == null || request.quantity <= 0) continue;
-            expandSummary(request.componentId, request.quantity, partSummaries, new HashSet<>(),
+            expandSummary(request.componentId, request.quantity, componentSummaries, new HashSet<>(),
                 compCache, childCache, new ArrayList<>());
         }
 
         List<BomSummaryRow> result = new ArrayList<>();
-        for (Map.Entry<Long, PartSummaryAccumulator> entry : partSummaries.entrySet()) {
-            Component part = compCache.get(entry.getKey());
-            if (part != null) {
+        for (Map.Entry<Long, ComponentSummaryAccumulator> entry : componentSummaries.entrySet()) {
+            Component component = compCache.get(entry.getKey());
+            if (component != null) {
                 double totalQty = entry.getValue().totalQty;
-                double stockQty = Math.max(0, part.getStockQty());
+                double stockQty = Math.max(0, component.getStockQty());
                 double deductedQty = Math.min(totalQty, stockQty);
                 double shortageQty = Math.max(0, totalQty - stockQty);
                 result.add(new BomSummaryRow(
+                    0,
+                    entry.getKey(),
+                    component.getType(),
                     String.join("；", entry.getValue().paths),
-                    part.getCode(), part.getName(), part.getSpec(),
-                    part.getMaterial(), part.getUnit(), totalQty,
+                    component.getCode(), component.getName(), component.getSpec(),
+                    component.getMaterial(), component.getUnit(), totalQty,
                     stockQty, deductedQty, shortageQty,
                     stockRemark(totalQty, stockQty, deductedQty, shortageQty)
                 ));
             }
         }
-        result.sort(Comparator.comparing(r -> r.code, Comparator.nullsLast(Comparator.naturalOrder())));
+        result.sort(Comparator
+            .comparing((BomSummaryRow r) -> isBlank(r.material))
+            .thenComparing(r -> normalizeSortText(r.material), Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparingInt(r -> typeOrder(r.type))
+            .thenComparing(r -> r.code, Comparator.nullsLast(Comparator.naturalOrder())));
+        for (int i = 0; i < result.size(); i++) {
+            result.get(i).sequence = i + 1;
+        }
         return result;
     }
 
@@ -94,7 +104,7 @@ public class BomService {
     }
 
     private void expandSummary(Long componentId, double multiplier,
-                               Map<Long, PartSummaryAccumulator> partSummaries,
+                               Map<Long, ComponentSummaryAccumulator> componentSummaries,
                                Set<Long> visited,
                                Map<Long, Component> compCache,
                                Map<Long, List<BomItem>> childCache,
@@ -109,16 +119,17 @@ public class BomService {
             List<String> currentPath = new ArrayList<>(path);
             currentPath.add(pathLabel(comp));
 
+            ComponentSummaryAccumulator acc = componentSummaries.computeIfAbsent(componentId, k -> new ComponentSummaryAccumulator());
+            acc.totalQty += multiplier;
+            acc.paths.add(String.join(" > ", currentPath));
+
             if (isLeafType(comp.getType())) {
-                PartSummaryAccumulator acc = partSummaries.computeIfAbsent(componentId, k -> new PartSummaryAccumulator());
-                acc.totalQty += multiplier;
-                acc.paths.add(String.join(" > ", currentPath));
                 return;
             }
 
             List<BomItem> children = childCache.getOrDefault(componentId, java.util.Collections.emptyList());
             for (BomItem child : children) {
-                expandSummary(child.getChildId(), multiplier * child.getQuantity(), partSummaries,
+                expandSummary(child.getChildId(), multiplier * child.getQuantity(), componentSummaries,
                     visited, compCache, childCache, currentPath);
             }
         } finally {
@@ -132,16 +143,32 @@ public class BomService {
         return typeLabel(component.getType()) + " " + code + " - " + name;
     }
 
-    private String typeLabel(String type) {
+    private boolean isLeafType(String type) {
+        return Component.TYPE_PART.equals(type) || Component.TYPE_PURCHASE.equals(type);
+    }
+
+    public static String typeLabel(String type) {
         if (Component.TYPE_PRODUCT.equals(type)) return "成品";
         if (Component.TYPE_SEMI.equals(type)) return "半成品";
-        if (Component.TYPE_PURCHASE.equals(type)) return "外购件";
         if (Component.TYPE_PART.equals(type)) return "零件";
+        if (Component.TYPE_PURCHASE.equals(type)) return "外购件";
         return type == null ? "" : type;
     }
 
-    private boolean isLeafType(String type) {
-        return Component.TYPE_PART.equals(type) || Component.TYPE_PURCHASE.equals(type);
+    public static int typeOrder(String type) {
+        if (Component.TYPE_PRODUCT.equals(type)) return 1;
+        if (Component.TYPE_SEMI.equals(type)) return 2;
+        if (Component.TYPE_PART.equals(type)) return 3;
+        if (Component.TYPE_PURCHASE.equals(type)) return 4;
+        return 9;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private static String normalizeSortText(String value) {
+        return value == null ? null : value.trim();
     }
 
     private String stockRemark(double totalQty, double stockQty, double deductedQty, double shortageQty) {
@@ -159,10 +186,11 @@ public class BomService {
      */
     public void exportCsv(List<BomSummaryRow> rows, File file) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "GBK"))) {
-            writer.write("物料编号,物料名称,规格型号,材质,单位,总需求,库存数量,扣库存,需补数量,库存备注");
+            writer.write("序号,类型,物料编号,物料名称,规格型号,材质,单位,总需求,库存数量,扣库存,需补数量,库存备注");
             writer.newLine();
             for (BomSummaryRow row : rows) {
-                writer.write(escapeCsv(row.code) + "," + escapeCsv(row.name) + "," +
+                writer.write(row.sequence + "," + escapeCsv(typeLabel(row.type)) + "," +
+                    escapeCsv(row.code) + "," + escapeCsv(row.name) + "," +
                     escapeCsv(row.spec) + "," + escapeCsv(row.material) + "," +
                     escapeCsv(row.unit) + "," + formatQty(row.totalQty) + "," +
                     formatQty(row.stockQty) + "," + formatQty(row.deductedQty) + "," +
@@ -176,6 +204,10 @@ public class BomService {
      * 导出BOM汇总到Excel文件
      */
     public void exportExcel(List<BomSummaryRow> rows, File file) throws IOException {
+        exportExcel(rows, file, "");
+    }
+
+    public void exportExcel(List<BomSummaryRow> rows, File file, String projectName) throws IOException {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("BOM汇总");
             configurePrint(sheet);
@@ -201,9 +233,27 @@ public class BomService {
             numberStyle.setVerticalAlignment(VerticalAlignment.CENTER);
             applyBorder(numberStyle);
 
-            // 标题行
-            String[] headers = {"物料编号", "物料名称", "规格型号", "材质", "单位", "总需求", "库存数量", "扣库存", "需补数量", "库存备注"};
-            Row headerRow = sheet.createRow(0);
+            CellStyle titleStyle = workbook.createCellStyle();
+            Font titleFont = workbook.createFont();
+            titleFont.setBold(true);
+            titleFont.setFontHeightInPoints((short) 16);
+            titleStyle.setFont(titleFont);
+            titleStyle.setAlignment(HorizontalAlignment.CENTER);
+            titleStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+
+            Row titleRow = sheet.createRow(0);
+            titleRow.setHeightInPoints(24);
+            Cell titleCell = titleRow.createCell(0);
+            String title = projectName == null || projectName.trim().isEmpty()
+                ? "BOM 汇总清单"
+                : projectName.trim() + " - BOM 汇总清单";
+            titleCell.setCellValue(title);
+            titleCell.setCellStyle(titleStyle);
+
+            // 表头行
+            String[] headers = {"序号", "类型", "物料编号", "物料名称", "规格型号", "材质", "单位", "总需求", "库存数量", "扣库存", "需补数量", "库存备注"};
+            sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, headers.length - 1));
+            Row headerRow = sheet.createRow(1);
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -211,24 +261,26 @@ public class BomService {
             }
 
             // 数据行
-            int rowNum = 1;
+            int rowNum = 2;
             for (BomSummaryRow row : rows) {
                 Row r = sheet.createRow(rowNum++);
-                createTextCell(r, 0, row.code, textStyle);
-                createTextCell(r, 1, row.name, textStyle);
-                createTextCell(r, 2, row.spec, textStyle);
-                createTextCell(r, 3, row.material, textStyle);
-                createTextCell(r, 4, row.unit, textStyle);
-                createNumberCell(r, 5, row.totalQty, numberStyle);
-                createNumberCell(r, 6, row.stockQty, numberStyle);
-                createNumberCell(r, 7, row.deductedQty, numberStyle);
-                createNumberCell(r, 8, row.shortageQty, numberStyle);
-                createTextCell(r, 9, row.stockRemark, textStyle);
+                createNumberCell(r, 0, row.sequence, numberStyle);
+                createTextCell(r, 1, typeLabel(row.type), textStyle);
+                createTextCell(r, 2, row.code, textStyle);
+                createTextCell(r, 3, row.name, textStyle);
+                createTextCell(r, 4, row.spec, textStyle);
+                createTextCell(r, 5, row.material, textStyle);
+                createTextCell(r, 6, row.unit, textStyle);
+                createNumberCell(r, 7, row.totalQty, numberStyle);
+                createNumberCell(r, 8, row.stockQty, numberStyle);
+                createNumberCell(r, 9, row.deductedQty, numberStyle);
+                createNumberCell(r, 10, row.shortageQty, numberStyle);
+                createTextCell(r, 11, row.stockRemark, textStyle);
             }
 
-            sheet.createFreezePane(0, 1);
-            sheet.setAutoFilter(new CellRangeAddress(0, Math.max(0, rowNum - 1), 0, headers.length - 1));
-            int[] widths = {14, 22, 24, 16, 10, 12, 12, 12, 12, 34};
+            sheet.createFreezePane(0, 2);
+            sheet.setAutoFilter(new CellRangeAddress(1, Math.max(1, rowNum - 1), 0, headers.length - 1));
+            int[] widths = {8, 10, 14, 22, 24, 16, 10, 12, 12, 12, 12, 34};
             for (int i = 0; i < widths.length; i++) {
                 sheet.setColumnWidth(i, widths[i] * 256);
             }
@@ -412,7 +464,7 @@ public class BomService {
         cell.setCellStyle(style);
     }
 
-    private static class PartSummaryAccumulator {
+    private static class ComponentSummaryAccumulator {
         private double totalQty;
         private final LinkedHashSet<String> paths = new LinkedHashSet<>();
     }
@@ -431,6 +483,9 @@ public class BomService {
      * BOM汇总结果行
      */
     public static class BomSummaryRow {
+        public int sequence;
+        public final Long componentId;
+        public final String type;
         public final String hierarchyPath;
         public final String code;
         public final String name;
@@ -443,8 +498,12 @@ public class BomService {
         public final double shortageQty;
         public final String stockRemark;
 
-        public BomSummaryRow(String hierarchyPath, String code, String name, String spec, String material, String unit,
+        public BomSummaryRow(int sequence, Long componentId, String type, String hierarchyPath,
+                             String code, String name, String spec, String material, String unit,
                              double totalQty, double stockQty, double deductedQty, double shortageQty, String stockRemark) {
+            this.sequence = sequence;
+            this.componentId = componentId;
+            this.type = type;
             this.hierarchyPath = hierarchyPath;
             this.code = code;
             this.name = name;

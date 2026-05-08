@@ -11,6 +11,8 @@ public class MainFrame extends JFrame {
     private final SemiProductPanel semiProductPanel;
     private final ProductPanel productPanel;
     private final BomPanel bomPanel;
+    private final OrderPanel orderPanel;
+    private final SettingsPanel settingsPanel;
 
     public MainFrame() {
         setTitle("BOM 管理系统");
@@ -25,6 +27,8 @@ public class MainFrame extends JFrame {
         semiProductPanel = new SemiProductPanel();
         productPanel = new ProductPanel();
         bomPanel = new BomPanel();
+        orderPanel = new OrderPanel();
+        settingsPanel = new SettingsPanel();
 
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.setFont(UIStyle.FONT_TAB);
@@ -35,6 +39,8 @@ public class MainFrame extends JFrame {
         tabbedPane.addTab("半成品", semiProductPanel);
         tabbedPane.addTab("成品", productPanel);
         tabbedPane.addTab("BOM 汇总", bomPanel);
+        tabbedPane.addTab("订单", orderPanel);
+        tabbedPane.addTab("设置", settingsPanel);
 
         tabbedPane.addChangeListener(e -> {
             int idx = tabbedPane.getSelectedIndex();
@@ -44,11 +50,13 @@ public class MainFrame extends JFrame {
                 case 2: semiProductPanel.refreshData(); break;
                 case 3: productPanel.refreshData(); break;
                 case 4: bomPanel.refreshData(); break;
+                case 5: orderPanel.refreshData(); break;
+                case 6: settingsPanel.refreshData(); break;
             }
         });
 
         JComponent banner = UIStyle.banner("BOM 管理系统",
-                "Bill of Materials · 零件 / 外购件 / 半成品 / 成品 / 汇总");
+                "Bill of Materials · 零件 / 外购件 / 半成品 / 成品 / 汇总 / 订单 / 设置");
         add(banner, BorderLayout.NORTH);
         add(tabbedPane, BorderLayout.CENTER);
     }

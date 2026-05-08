@@ -4,6 +4,7 @@ import com.bom.dao.BomItemDao;
 import com.bom.dao.ComponentDao;
 import com.bom.model.BomItem;
 import com.bom.model.Component;
+import com.bom.service.OptionService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -258,8 +259,8 @@ public class ProductPanel extends JPanel {
         JTextField nameField = new JTextField(source == null ? "" :
             (copyMode ? (safe(source.getName()) + " (副本)") : safe(source.getName())));
         JTextField specField = new JTextField(source == null ? "" : safe(source.getSpec()));
-        JTextField unitField = new JTextField(source == null ? "" : safe(source.getUnit()));
-        JTextField materialField = new JTextField(source == null ? "" : safe(source.getMaterial()));
+        OptionComboBox unitField = new OptionComboBox(OptionService.CATEGORY_UNIT, source == null ? "" : safe(source.getUnit()));
+        OptionComboBox materialField = new OptionComboBox(OptionService.CATEGORY_MATERIAL, source == null ? "" : safe(source.getMaterial()));
         JTextField remarkField = new JTextField(source == null ? "" : safe(source.getRemark()));
         PartPanel.addFormRow(infoPanel, g, 0, "编号", codeField);
         PartPanel.addFormRow(infoPanel, g, 1, "名称", nameField);

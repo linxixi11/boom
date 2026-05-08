@@ -4,18 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fe2101ef-7541-45a5-a882-4844b86e3dcc" name="Changes" comment="123">
-      <change afterPath="$PROJECT_DIR$/data/bom_data.mv.db" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/bom/service/ComponentSheetService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/bom/ui/ComponentSheetActions.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/target/classes/com/bom/service/ComponentSheetService$ImportResult.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/target/classes/com/bom/service/ComponentSheetService.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/ComponentSheetActions.class" afterDir="false" />
+    <list default="true" id="fe2101ef-7541-45a5-a882-4844b86e3dcc" name="Changes" comment="11">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/dao/ComponentDao.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/dao/ComponentDao.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/db/TestDataLoader.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/model/Component.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/model/Component.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/bom_data.mv.db" beforeDir="false" afterPath="$PROJECT_DIR$/data/bom_data.mv.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/db/DatabaseManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/db/DatabaseManager.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/service/BomService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/service/BomService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/ui/BomPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/ui/BomPanel.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/ui/MainFrame.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/ui/MainFrame.java" afterDir="false" />
@@ -23,15 +15,11 @@
       <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/ui/ProductPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/ui/ProductPanel.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/bom/ui/SemiProductPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/bom/ui/SemiProductPanel.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/bom-manager-1.0.0.jar" beforeDir="false" afterPath="$PROJECT_DIR$/target/bom-manager-1.0.0.jar" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/Main.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/Main.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/dao/ComponentDao.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/dao/ComponentDao.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/db/DatabaseManager.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/db/DatabaseManager.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/db/TestDataLoader.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/model/Component.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/model/Component.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$BomExportRow.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$BomExportRow.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$BomRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$BomRequest.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$BomSummaryRow.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$BomSummaryRow.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$PartSummaryAccumulator.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$PartSummaryAccumulator.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/service/BomService$PartSummaryAccumulator.class" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/service/BomService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/service/BomService.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$1.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/BomPanel$2.class" afterDir="false" />
@@ -43,7 +31,6 @@
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/MainFrame.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/MainFrame.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel$1.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel$2.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel$ComponentCallback.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel$ComponentCallback.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/PartPanel.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$1.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/bom/ui/ProductPanel$2.class" afterDir="false" />
@@ -164,7 +151,7 @@
       <updated>1777541750115</updated>
       <workItem from="1777541751146" duration="95000" />
       <workItem from="1777542192801" duration="11479000" />
-      <workItem from="1778121364103" duration="4067000" />
+      <workItem from="1778121364103" duration="10551000" />
     </task>
     <task id="LOCAL-00001" summary="123">
       <option name="closed" value="true" />
@@ -190,7 +177,23 @@
       <option name="project" value="LOCAL" />
       <updated>1778121398193</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="11">
+      <option name="closed" value="true" />
+      <created>1778203189288</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1778203189288</updated>
+    </task>
+    <task id="LOCAL-00005" summary="11">
+      <option name="closed" value="true" />
+      <created>1778221101522</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1778221101522</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -198,6 +201,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="123" />
-    <option name="LAST_COMMIT_MESSAGE" value="123" />
+    <MESSAGE value="11" />
+    <option name="LAST_COMMIT_MESSAGE" value="11" />
   </component>
 </project>
