@@ -12,7 +12,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * 可搜索的下拉选择框：输入关键字实时过滤，弹出列表选择
+ * 可搜索的下拉选择框：输入关键字实时过滤，弹出列表选择。
+ * 使用 Timer 防抖，避免拼音输入法组合中被弹窗打断。
  */
 public class SearchableComboBox extends JPanel {
     private final JTextField textField;
@@ -24,6 +25,9 @@ public class SearchableComboBox extends JPanel {
     private Component selected;
     private Consumer<Component> onSelected;
     private boolean suppressDocEvent = false;
+
+    // 防抖定时器，300ms 延迟后才真正执行过滤弹出
+    private final Timer debounceTimer;
 
     public SearchableComboBox(List<Component> items) {
         this.allItems = items != null ? items : new ArrayList<>();
@@ -46,24 +50,28 @@ public class SearchableComboBox extends JPanel {
         sp.setPreferredSize(new Dimension(280, 200));
         popup.add(sp);
 
-        // 输入过滤
+        // 防抖 Timer：300ms 内连续输入不触发弹窗，避免拼音组合被打断
+        debounceTimer = new Timer(300, e -> doShowPopup());
+        debounceTimer.setRepeats(false);
+
+        // 输入过滤（通过防抖 Timer 延迟触发）
         textField.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { if (!suppressDocEvent) showPopup(); }
-            @Override public void removeUpdate(DocumentEvent e) { if (!suppressDocEvent) showPopup(); }
-            @Override public void changedUpdate(DocumentEvent e) { if (!suppressDocEvent) showPopup(); }
+            @Override public void insertUpdate(DocumentEvent e) { schedulePopup(); }
+            @Override public void removeUpdate(DocumentEvent e) { schedulePopup(); }
+            @Override public void changedUpdate(DocumentEvent e) { schedulePopup(); }
         });
 
         // 点击弹出
         textField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
-                if (selected == null) showPopup();
+                if (selected == null) schedulePopup();
             }
         });
         textField.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                showPopup();
+                schedulePopup();
             }
         });
 
@@ -110,7 +118,19 @@ public class SearchableComboBox extends JPanel {
         });
     }
 
-    private void showPopup() {
+    /**
+     * 安排一次防抖弹窗：每次调用都会重置计时器，
+     * 只有在最后一次调用 300ms 后才真正执行 doShowPopup()。
+     */
+    private void schedulePopup() {
+        if (suppressDocEvent) return;
+        debounceTimer.restart();
+    }
+
+    /**
+     * 真正执行关键字过滤和弹出列表
+     */
+    private void doShowPopup() {
         String keyword = textField.getText().trim().toLowerCase();
         filteredItems.clear();
         listModel.clear();

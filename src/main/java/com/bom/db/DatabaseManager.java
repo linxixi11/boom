@@ -180,6 +180,7 @@ public class DatabaseManager {
 
         stmt.close();
         initOptionTable(conn);
+        initPreferenceTable(conn);
     }
 
     private void initOptionTable(Connection conn) throws SQLException {
@@ -215,6 +216,17 @@ public class DatabaseManager {
                 insertPs.addBatch();
             }
             insertPs.executeBatch();
+        }
+    }
+
+    private void initPreferenceTable(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute(
+                "CREATE TABLE IF NOT EXISTS app_preference (" +
+                "  pref_key VARCHAR(100) PRIMARY KEY," +
+                "  pref_value VARCHAR(500)" +
+                ")"
+            );
         }
     }
 

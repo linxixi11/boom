@@ -1,5 +1,7 @@
 package com.bom.ui;
 
+import com.bom.service.PreferenceService;
+
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.Border;
@@ -168,6 +170,20 @@ public final class UIStyle {
         sp.getViewport().setBackground(CARD);
         sp.getVerticalScrollBar().setUnitIncrement(16);
         return sp;
+    }
+
+    public static void rememberDividerLocation(JSplitPane split, String key, int defaultLocation) {
+        PreferenceService preferences = PreferenceService.getInstance();
+        SwingUtilities.invokeLater(() -> {
+            int savedLocation = preferences.getInt(key, defaultLocation);
+            split.setDividerLocation(savedLocation > 0 ? savedLocation : defaultLocation);
+        });
+        split.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, e -> {
+            int location = split.getDividerLocation();
+            if (location > 0) {
+                preferences.putInt(key, location);
+            }
+        });
     }
 
     // —— 按钮 ——

@@ -62,9 +62,9 @@ public class BomService {
             }
         }
         result.sort(Comparator
-            .comparing((BomSummaryRow r) -> isBlank(r.material))
+            .comparingInt((BomSummaryRow r) -> typeOrder(r.type))
+            .thenComparing((BomSummaryRow r) -> isBlank(r.material))
             .thenComparing(r -> normalizeSortText(r.material), Comparator.nullsLast(Comparator.naturalOrder()))
-            .thenComparingInt(r -> typeOrder(r.type))
             .thenComparing(r -> r.code, Comparator.nullsLast(Comparator.naturalOrder())));
         for (int i = 0; i < result.size(); i++) {
             result.get(i).sequence = i + 1;

@@ -131,6 +131,7 @@ public class BomPanel extends JPanel {
         leftSplit.setBorder(null);
         leftSplit.setDividerSize(8);
         leftSplit.setOpaque(false);
+        UIStyle.rememberDividerLocation(leftSplit, "bom.left.split", 300);
 
         // ====== 结果区 ======
         JPanel rightPanel = UIStyle.section();
@@ -196,11 +197,11 @@ public class BomPanel extends JPanel {
         rightPanel.add(UIStyle.buttonRow(csvBtn, excelBtn, saveOrderBtn, pageSetupBtn, previewBtn, printBtn), BorderLayout.SOUTH);
 
         JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftSplit, rightPanel);
-        mainSplit.setDividerLocation(460);
         mainSplit.setResizeWeight(0.42);
         mainSplit.setBorder(null);
         mainSplit.setDividerSize(8);
         mainSplit.setOpaque(false);
+        UIStyle.rememberDividerLocation(mainSplit, "bom.main.split", 460);
         add(mainSplit, BorderLayout.CENTER);
 
         // ====== 事件 ======
@@ -269,8 +270,7 @@ public class BomPanel extends JPanel {
                 }
             }
             updatePickedCount();
-            resultModel.setRowCount(0);
-            currentRows = new ArrayList<>();
+            // 不再清空汇总结果，切换 Tab 后数据保留
             updateResultCount();
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "加载失败: " + e.getMessage());
@@ -500,6 +500,13 @@ public class BomPanel extends JPanel {
             });
         }
         resultSorter.setRowFilter(filters.isEmpty() ? null : RowFilter.andFilter(filters));
+        
+        // 动态更新序号（为了打印时显示连续的序号）
+        for (int i = 0; i < resultTable.getRowCount(); i++) {
+            int modelRow = resultTable.convertRowIndexToModel(i);
+            resultModel.setValueAt(i + 1, modelRow, 0);
+        }
+        
         updateResultCount();
     }
 

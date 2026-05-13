@@ -60,8 +60,10 @@ public class ProductPanel extends JPanel {
 
         JButton addItemBtn = UIStyle.button("添加子件");
         JButton editItemBtn = UIStyle.button("修改用量");
+        JButton copyChildBtn = UIStyle.button("复制子件");
+        JButton pasteChildBtn = UIStyle.button("粘贴子件");
         JButton delItemBtn = UIStyle.dangerButton("移除");
-        rightHeader.add(UIStyle.buttonRowRight(addItemBtn, editItemBtn, delItemBtn), BorderLayout.EAST);
+        rightHeader.add(UIStyle.buttonRowRight(addItemBtn, editItemBtn, copyChildBtn, pasteChildBtn, delItemBtn), BorderLayout.EAST);
         rightPanel.add(rightHeader, BorderLayout.NORTH);
 
         bomModel = new DefaultTableModel(new String[]{"ID", "子件编号", "子件名称", "类型", "规格", "单位", "用量"}, 0) {
@@ -73,11 +75,11 @@ public class ProductPanel extends JPanel {
         rightPanel.add(UIStyle.wrap(bomTable), BorderLayout.CENTER);
 
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel);
-        split.setDividerLocation(420);
         split.setResizeWeight(0.42);
         split.setBorder(null);
         split.setDividerSize(8);
         split.setOpaque(false);
+        UIStyle.rememberDividerLocation(split, "product.split", 420);
         add(split, BorderLayout.CENTER);
 
         listTable.getSelectionModel().addListSelectionListener(e -> {
@@ -117,6 +119,53 @@ public class ProductPanel extends JPanel {
                 loadBomItems();
             }
             catch (SQLException ex) { JOptionPane.showMessageDialog(this, ex.getMessage()); }
+        });
+
+        // 复制选中的子件引用到剪贴板
+        copyChildBtn.addActionListener(e -> {
+            java.util.List<Long> bomIds = selectedBomIds();
+            if (bomIds.isEmpty()) { JOptionPane.showMessageDialog(this, "请先选择子件"); return; }
+            java.util.List<BomChildClipboard.ChildRef> refs = new ArrayList<>();
+            for (int viewRow : bomTable.getSelectedRows()) {
+                int mr = bomTable.convertRowIndexToModel(viewRow);
+                Long childId = (Long) bomModel.getValueAt(mr, 0);
+                String code = (String) bomModel.getValueAt(mr, 1);
+                String name = (String) bomModel.getValueAt(mr, 2);
+                String type = (String) bomModel.getValueAt(mr, 3);
+                String spec = (String) bomModel.getValueAt(mr, 4);
+                String unit = (String) bomModel.getValueAt(mr, 5);
+                double qty = parseQty(bomModel.getValueAt(mr, 6));
+                refs.add(new BomChildClipboard.ChildRef(childId, type, code, name, spec, unit, qty));
+            }
+            BomChildClipboard.copy(refs);
+            JOptionPane.showMessageDialog(this, "已复制 " + refs.size() + " 个子件引用");
+        });
+
+        // 粘贴剪贴板中的子件引用到当前成品
+        pasteChildBtn.addActionListener(e -> {
+            Long pid = selectedListId();
+            if (pid == null) { JOptionPane.showMessageDialog(this, "请先选择成品"); return; }
+            if (BomChildClipboard.isEmpty()) { JOptionPane.showMessageDialog(this, "剪贴板为空，请先复制子件"); return; }
+            java.util.List<BomChildClipboard.ChildRef> refs = BomChildClipboard.paste();
+            int added = 0;
+            try {
+                // 获取当前成品已有的子件ID
+                java.util.Set<Long> existingChildIds = new java.util.HashSet<>();
+                for (BomItem item : bomItemDao.findByParentId(pid)) {
+                    existingChildIds.add(item.getChildId());
+                }
+                for (BomChildClipboard.ChildRef ref : refs) {
+                    if (!existingChildIds.contains(ref.childId)) {
+                        bomItemDao.insert(new BomItem(pid, ref.childId, ref.quantity));
+                        existingChildIds.add(ref.childId);
+                        added++;
+                    }
+                }
+                loadBomItems();
+                JOptionPane.showMessageDialog(this, "已粘贴 " + added + " 个子件（跳过已存在的）");
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "粘贴失败: " + ex.getMessage());
+            }
         });
 
         refreshData();
@@ -417,6 +466,7 @@ public class ProductPanel extends JPanel {
             @Override public Class<?> getColumnClass(int c) { return c == 0 ? Long.class : String.class; }
         };
         JTable childTable = UIStyle.createTable(childModel);
+        childTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         UIStyle.hideColumn(childTable, 0);
         try {
             for (Component c : loadProductChildCandidates()) {
@@ -453,9 +503,8 @@ public class ProductPanel extends JPanel {
         dialog.add(bottom, BorderLayout.SOUTH);
 
         addBtn.addActionListener(e -> {
-            int row = childTable.getSelectedRow();
-            if (row < 0) { JOptionPane.showMessageDialog(dialog, "请选择子件"); return; }
-            Long childId = (Long) childModel.getValueAt(childTable.convertRowIndexToModel(row), 0);
+            int[] rows = childTable.getSelectedRows();
+            if (rows.length == 0) { JOptionPane.showMessageDialog(dialog, "请选择一个或多个子件"); return; }
             double qty;
             try {
                 qty = Double.parseDouble(qtyField.getText().trim());
@@ -465,7 +514,10 @@ public class ProductPanel extends JPanel {
                 return;
             }
             try {
-                bomItemDao.insert(new BomItem(productId, childId, qty));
+                for (int row : rows) {
+                    Long childId = (Long) childModel.getValueAt(childTable.convertRowIndexToModel(row), 0);
+                    bomItemDao.insert(new BomItem(productId, childId, qty));
+                }
                 dialog.dispose();
                 loadBomItems();
             } catch (SQLException ex) {
