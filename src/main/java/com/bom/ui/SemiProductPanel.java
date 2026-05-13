@@ -66,12 +66,13 @@ public class SemiProductPanel extends JPanel {
         rightHeader.add(UIStyle.buttonRowRight(addItemBtn, editItemBtn, copyChildBtn, pasteChildBtn, delItemBtn), BorderLayout.EAST);
         rightPanel.add(rightHeader, BorderLayout.NORTH);
 
-        bomModel = new DefaultTableModel(new String[]{"ID", "子件编号", "子件名称", "类型", "规格", "单位", "用量"}, 0) {
+        bomModel = new DefaultTableModel(new String[]{"ID", "子件ID", "子件编号", "子件名称", "类型", "规格", "单位", "用量"}, 0) {
             @Override public boolean isCellEditable(int row, int column) { return false; }
-            @Override public Class<?> getColumnClass(int c) { return c == 0 ? Long.class : String.class; }
+            @Override public Class<?> getColumnClass(int c) { return c == 0 || c == 1 ? Long.class : String.class; }
         };
         bomTable = UIStyle.createTable(bomModel);
         UIStyle.hideColumn(bomTable, 0);
+        UIStyle.hideColumn(bomTable, 1);
         rightPanel.add(UIStyle.wrap(bomTable), BorderLayout.CENTER);
 
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel);
@@ -129,13 +130,13 @@ public class SemiProductPanel extends JPanel {
             java.util.List<BomChildClipboard.ChildRef> refs = new ArrayList<>();
             for (int viewRow : bomTable.getSelectedRows()) {
                 int mr = bomTable.convertRowIndexToModel(viewRow);
-                Long childId = (Long) bomModel.getValueAt(mr, 0);
-                String code = (String) bomModel.getValueAt(mr, 1);
-                String name = (String) bomModel.getValueAt(mr, 2);
-                String type = (String) bomModel.getValueAt(mr, 3);
-                String spec = (String) bomModel.getValueAt(mr, 4);
-                String unit = (String) bomModel.getValueAt(mr, 5);
-                double qty = parseQty(bomModel.getValueAt(mr, 6));
+                Long childId = (Long) bomModel.getValueAt(mr, 1);
+                String code = (String) bomModel.getValueAt(mr, 2);
+                String name = (String) bomModel.getValueAt(mr, 3);
+                String type = (String) bomModel.getValueAt(mr, 4);
+                String spec = (String) bomModel.getValueAt(mr, 5);
+                String unit = (String) bomModel.getValueAt(mr, 6);
+                double qty = parseQty(bomModel.getValueAt(mr, 7));
                 refs.add(new BomChildClipboard.ChildRef(childId, type, code, name, spec, unit, qty));
             }
             BomChildClipboard.copy(refs);
@@ -258,7 +259,7 @@ public class SemiProductPanel extends JPanel {
         try {
             bomModel.setRowCount(0);
             for (BomItem item : bomItemDao.findByParentId(semiId)) {
-                bomModel.addRow(new Object[]{item.getId(), item.getChildCode(), item.getChildName(),
+                bomModel.addRow(new Object[]{item.getId(), item.getChildId(), item.getChildCode(), item.getChildName(),
                     typeLabel(item.getChildType()), item.getChildSpec(), item.getChildUnit(), item.getQuantity()});
             }
         } catch (SQLException e) {
