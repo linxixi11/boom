@@ -116,9 +116,15 @@ public class BomPanel extends JPanel {
             @Override public Class<?> getColumnClass(int c) { return c == 0 ? Long.class : String.class; }
         };
         pickedTable = UIStyle.createTable(pickedModel);
+        pickedTable.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
         UIStyle.hideColumn(pickedTable, 0);
         pickedTable.getColumnModel().getColumn(1).setMaxWidth(70);
         pickedTable.getColumnModel().getColumn(2).setPreferredWidth(90);
+        pickedModel.addTableModelListener(e -> {
+            if (e.getType() == javax.swing.event.TableModelEvent.UPDATE && e.getColumn() == 5) {
+                updatePickedQuantity(e.getFirstRow());
+            }
+        });
         pickedPanel.add(UIStyle.wrap(pickedTable), BorderLayout.CENTER);
 
         JButton removeBtn = UIStyle.button("移除选中");
@@ -356,6 +362,19 @@ public class BomPanel extends JPanel {
 
     private void updatePickedCount() {
         pickedCount.setText("已选 " + pickedQuantities.size() + " 项");
+    }
+
+    private void updatePickedQuantity(int row) {
+        if (row < 0 || row >= pickedModel.getRowCount()) return;
+        Long id = (Long) pickedModel.getValueAt(row, 0);
+        try {
+            double qty = Double.parseDouble(String.valueOf(pickedModel.getValueAt(row, 5)).trim());
+            if (qty > 0) {
+                pickedQuantities.put(id, qty);
+                clearResult();
+            }
+        } catch (NumberFormatException ignored) {
+        }
     }
 
     private void updateResultCount() {

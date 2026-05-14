@@ -254,6 +254,10 @@ public class ProductPanel extends JPanel {
     }
 
     private void loadBomItems() {
+        loadBomItems(java.util.Collections.emptySet());
+    }
+
+    private void loadBomItems(java.util.Set<Long> highlightChildIds) {
         Long pid = selectedListId();
         if (pid == null) return;
         try {
@@ -262,8 +266,22 @@ public class ProductPanel extends JPanel {
                 bomModel.addRow(new Object[]{item.getId(), item.getChildId(), item.getChildCode(), item.getChildName(),
                     typeLabel(item.getChildType()), item.getChildSpec(), item.getChildUnit(), item.getQuantity()});
             }
+            highlightBomChildren(highlightChildIds);
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, e.getMessage());
+        }
+    }
+
+    private void highlightBomChildren(java.util.Set<Long> childIds) {
+        if (childIds == null || childIds.isEmpty()) return;
+        bomTable.clearSelection();
+        for (int i = 0; i < bomModel.getRowCount(); i++) {
+            Long childId = (Long) bomModel.getValueAt(i, 1);
+            if (childIds.contains(childId)) {
+                int viewRow = bomTable.convertRowIndexToView(i);
+                bomTable.addRowSelectionInterval(viewRow, viewRow);
+                bomTable.scrollRectToVisible(bomTable.getCellRect(viewRow, 0, true));
+            }
         }
     }
 
@@ -289,8 +307,7 @@ public class ProductPanel extends JPanel {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), title, true);
         dialog.setLayout(new BorderLayout(0, 0));
         dialog.getContentPane().setBackground(UIStyle.BG);
-        dialog.setSize(620, 540);
-        dialog.setLocationRelativeTo(this);
+        UIStyle.rememberWindowBounds(dialog, "dialog.product.edit.bounds", new Dimension(620, 540), this);
 
         JPanel infoPanel = new JPanel(new GridBagLayout());
         infoPanel.setOpaque(false);
@@ -388,6 +405,10 @@ public class ProductPanel extends JPanel {
             }
             childModel.addRow(new Object[]{sel.getId(), typeLabel(sel.getType()), sel.getCode(),
                 sel.getName(), sel.getSpec(), sel.getUnit(), qty});
+            int newRow = childModel.getRowCount() - 1;
+            int viewRow = childTable.convertRowIndexToView(newRow);
+            childTable.setRowSelectionInterval(viewRow, viewRow);
+            childTable.scrollRectToVisible(childTable.getCellRect(viewRow, 0, true));
             searchCombo.clearSelection();
             qtyField.setText("1");
         });
@@ -445,8 +466,7 @@ public class ProductPanel extends JPanel {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "添加子件", true);
         dialog.setLayout(new BorderLayout(8, 8));
         dialog.getContentPane().setBackground(UIStyle.BG);
-        dialog.setSize(540, 360);
-        dialog.setLocationRelativeTo(this);
+        UIStyle.rememberWindowBounds(dialog, "dialog.product.addChild.bounds", new Dimension(540, 360), this);
 
         List<Component> candidates;
         try { candidates = loadProductChildCandidates(); }
@@ -515,12 +535,14 @@ public class ProductPanel extends JPanel {
                 return;
             }
             try {
+                java.util.Set<Long> addedChildIds = new java.util.LinkedHashSet<>();
                 for (int row : rows) {
                     Long childId = (Long) childModel.getValueAt(childTable.convertRowIndexToModel(row), 0);
                     bomItemDao.insert(new BomItem(productId, childId, qty));
+                    addedChildIds.add(childId);
                 }
                 dialog.dispose();
-                loadBomItems();
+                loadBomItems(addedChildIds);
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(dialog, ex.getMessage());
             }

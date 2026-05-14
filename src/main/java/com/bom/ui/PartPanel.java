@@ -132,8 +132,7 @@ public class PartPanel extends JPanel {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), title, true);
         dialog.setLayout(new BorderLayout(0, 0));
         dialog.getContentPane().setBackground(UIStyle.BG);
-        dialog.setSize(500, 420);
-        dialog.setLocationRelativeTo(this);
+        UIStyle.rememberWindowBounds(dialog, "dialog." + componentType + ".edit.bounds", new Dimension(500, 420), this);
 
         JPanel form = new JPanel(new GridBagLayout());
         form.setOpaque(false);

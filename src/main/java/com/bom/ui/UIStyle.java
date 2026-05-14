@@ -5,11 +5,14 @@ import com.bom.service.PreferenceService;
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.Border;
+import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableModel;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -166,7 +169,16 @@ public final class UIStyle {
 
     public static JScrollPane wrap(Component c) {
         JScrollPane sp = new JScrollPane(c);
-        sp.setBorder(BorderFactory.createLineBorder(BORDER));
+        Border lineBorder = BorderFactory.createLineBorder(BORDER);
+        if (c instanceof JTable) {
+            TitledBorder sumBorder = BorderFactory.createTitledBorder(lineBorder, "选中数量合计: 0");
+            sumBorder.setTitleFont(FONT_SMALL);
+            sumBorder.setTitleColor(TEXT_MUTED);
+            sp.setBorder(sumBorder);
+            installSelectionSum((JTable) c, sumBorder, sp);
+        } else {
+            sp.setBorder(lineBorder);
+        }
         sp.getViewport().setBackground(CARD);
         sp.getVerticalScrollBar().setUnitIncrement(16);
         return sp;
@@ -184,6 +196,96 @@ public final class UIStyle {
                 preferences.putInt(key, location);
             }
         });
+    }
+
+    public static void rememberWindowBounds(Window window, String key, Dimension defaultSize, Component relativeTo) {
+        PreferenceService preferences = PreferenceService.getInstance();
+        String saved = preferences.getString(key, null);
+        Rectangle bounds = parseBounds(saved);
+        if (bounds != null) {
+            window.setBounds(bounds);
+        } else {
+            window.setSize(defaultSize);
+            window.setLocationRelativeTo(relativeTo);
+        }
+        window.addComponentListener(new ComponentAdapter() {
+            @Override public void componentMoved(ComponentEvent e) { saveBounds(); }
+            @Override public void componentResized(ComponentEvent e) { saveBounds(); }
+            private void saveBounds() {
+                Rectangle b = window.getBounds();
+                if (b.width >= 240 && b.height >= 160) {
+                    preferences.putString(key, b.x + "," + b.y + "," + b.width + "," + b.height);
+                }
+            }
+        });
+    }
+
+    private static Rectangle parseBounds(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        String[] parts = value.split(",");
+        if (parts.length != 4) return null;
+        try {
+            int x = Integer.parseInt(parts[0].trim());
+            int y = Integer.parseInt(parts[1].trim());
+            int w = Integer.parseInt(parts[2].trim());
+            int h = Integer.parseInt(parts[3].trim());
+            if (w < 240 || h < 160) return null;
+            return new Rectangle(x, y, w, h);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static void installSelectionSum(JTable table, TitledBorder border, JComponent owner) {
+        Runnable update = () -> {
+            double sum = 0;
+            int count = 0;
+            int[] rows = table.getSelectedRows();
+            if (rows.length > 0) {
+                for (int viewRow : rows) {
+                    for (int viewCol = 0; viewCol < table.getColumnCount(); viewCol++) {
+                        TableColumn column = table.getColumnModel().getColumn(viewCol);
+                        if (column.getMaxWidth() == 0 || !isQuantityColumn(table, viewCol)) continue;
+                        Double value = parseNumericCell(table.getValueAt(viewRow, viewCol));
+                        if (value != null) {
+                            sum += value;
+                            count++;
+                        }
+                    }
+                }
+            }
+            border.setTitle("选中数量合计: " + (count == 0 ? "0" : formatSum(sum)));
+            owner.repaint();
+        };
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) update.run();
+        });
+        table.getColumnModel().getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) update.run();
+        });
+    }
+
+    private static boolean isQuantityColumn(JTable table, int viewCol) {
+        String name = table.getColumnName(viewCol);
+        return name.contains("数量") || name.contains("用量") || name.contains("需求")
+            || name.contains("库存") || name.contains("扣") || name.contains("补");
+    }
+
+    private static Double parseNumericCell(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number) return ((Number) value).doubleValue();
+        String text = value.toString().trim().replace(",", "");
+        if (!text.matches("-?\\d+(\\.\\d+)?")) return null;
+        try {
+            return Double.parseDouble(text);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static String formatSum(double sum) {
+        if (sum == Math.floor(sum) && !Double.isInfinite(sum)) return String.valueOf((long) sum);
+        return String.valueOf(sum);
     }
 
     // —— 按钮 ——

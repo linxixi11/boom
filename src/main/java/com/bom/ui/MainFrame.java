@@ -17,9 +17,8 @@ public class MainFrame extends JFrame {
     public MainFrame() {
         setTitle("BOM 管理系统");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1180, 720);
         setMinimumSize(new Dimension(960, 560));
-        setLocationRelativeTo(null);
+        UIStyle.rememberWindowBounds(this, "window.main.bounds", new Dimension(1180, 720), null);
         getContentPane().setBackground(UIStyle.BG);
 
         partPanel = new PartPanel();

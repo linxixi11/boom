@@ -1,5 +1,7 @@
 package com.bom.ui;
 
+import com.bom.service.BomService;
+import com.bom.service.BomService.BomSummaryRow;
 import com.bom.service.OrderService;
 import com.bom.service.OrderService.Order;
 import com.bom.service.OrderService.OrderItem;
@@ -7,10 +9,12 @@ import com.bom.service.OrderService.OrderItem;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.print.PageFormat;
+import java.io.File;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -18,6 +22,7 @@ import java.util.List;
 
 public class OrderPanel extends JPanel {
     private final OrderService orderService = new OrderService();
+    private final BomService bomService = new BomService();
     private final DefaultTableModel orderModel;
     private final JTable orderTable;
     private final DefaultTableModel itemModel;
@@ -56,8 +61,9 @@ public class OrderPanel extends JPanel {
         
         leftPanel.add(UIStyle.wrap(orderTable), BorderLayout.CENTER);
 
+        JButton newOrderBtn = UIStyle.primaryButton("新建订单");
         JButton deleteBtn = UIStyle.button("删除订单");
-        leftPanel.add(UIStyle.buttonRow(deleteBtn), BorderLayout.SOUTH);
+        leftPanel.add(UIStyle.buttonRow(newOrderBtn, deleteBtn), BorderLayout.SOUTH);
 
         // ====== 右侧订单明细 ======
         JPanel rightPanel = UIStyle.section();
@@ -100,8 +106,9 @@ public class OrderPanel extends JPanel {
 
         JButton pageSetupBtn = UIStyle.button("页面设置");
         JButton previewBtn = UIStyle.button("打印预览");
+        JButton exportExcelBtn = UIStyle.button("导出 Excel");
         JButton printBtn = UIStyle.primaryButton("打印此订单");
-        rightPanel.add(UIStyle.buttonRowRight(pageSetupBtn, previewBtn, printBtn), BorderLayout.SOUTH);
+        rightPanel.add(UIStyle.buttonRowRight(pageSetupBtn, previewBtn, exportExcelBtn, printBtn), BorderLayout.SOUTH);
 
         JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel);
         mainSplit.setResizeWeight(0.3);
@@ -118,6 +125,7 @@ public class OrderPanel extends JPanel {
             }
         });
 
+        newOrderBtn.addActionListener(e -> OrderDraftDialog.show(this, this::refreshData));
         deleteBtn.addActionListener(e -> deleteSelectedOrder());
 
         DocumentListener filterListener = new DocumentListener() {
@@ -130,6 +138,7 @@ public class OrderPanel extends JPanel {
 
         pageSetupBtn.addActionListener(e -> pageFormat = TablePrintSupport.showPageSetup(this, pageFormat));
         previewBtn.addActionListener(e -> TablePrintSupport.showPreview(this, itemTable, pageFormat, printTitle()));
+        exportExcelBtn.addActionListener(e -> exportCurrentOrderExcel());
         printBtn.addActionListener(e -> TablePrintSupport.print(this, itemTable, pageFormat, printTitle()));
 
         refreshData();
@@ -242,6 +251,38 @@ public class OrderPanel extends JPanel {
 
     private String printTitle() {
         return currentProjectName.isEmpty() ? "订单明细清单" : currentProjectName + " - 订单明细清单";
+    }
+
+    private void exportCurrentOrderExcel() {
+        if (currentItems.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "当前没有可导出的订单明细");
+            return;
+        }
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileFilter(new FileNameExtensionFilter("Excel 文件", "xlsx"));
+        String fileName = currentProjectName == null || currentProjectName.trim().isEmpty() ? "订单明细.xlsx" : currentProjectName + "-订单明细.xlsx";
+        chooser.setSelectedFile(new File(fileName));
+        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+            if (!file.getName().endsWith(".xlsx")) file = new File(file.getAbsolutePath() + ".xlsx");
+            try {
+                bomService.exportExcel(toSummaryRows(currentItems), file, currentProjectName);
+                JOptionPane.showMessageDialog(this, "导出成功: " + file.getAbsolutePath());
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "导出失败: " + ex.getMessage());
+            }
+        }
+    }
+
+    private List<BomSummaryRow> toSummaryRows(List<OrderItem> items) {
+        List<BomSummaryRow> rows = new ArrayList<>();
+        int seq = 1;
+        for (OrderItem item : items) {
+            rows.add(new BomSummaryRow(seq++, null, item.componentType, "", item.componentCode,
+                item.componentName, item.spec, item.material, item.unit, item.totalQty,
+                item.stockQty, item.deductedQty, item.shortageQty, item.stockRemark));
+        }
+        return rows;
     }
 
     private String formatQty(double qty) {

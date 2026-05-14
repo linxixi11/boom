@@ -113,8 +113,7 @@ public final class TablePrintSupport {
             this.pages = pages;
             setLayout(new BorderLayout(8, 8));
             getContentPane().setBackground(UIStyle.BG);
-            setSize(920, 720);
-            setLocationRelativeTo(owner);
+            UIStyle.rememberWindowBounds(this, "dialog.print.preview.bounds", new Dimension(920, 720), owner);
 
             JButton prevBtn = UIStyle.button("上一页");
             JButton nextBtn = UIStyle.button("下一页");
