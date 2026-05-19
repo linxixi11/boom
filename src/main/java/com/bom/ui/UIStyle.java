@@ -126,6 +126,8 @@ public final class UIStyle {
         t.setSelectionForeground(TEXT);
         t.setFillsViewportHeight(true);
         t.setAutoCreateRowSorter(true);
+        // 允许像 Excel 一样拖选任意单元格区域（含跨行跨列），用于选中数字求和
+        t.setCellSelectionEnabled(true);
 
         JTableHeader h = t.getTableHeader();
         h.setDefaultRenderer(new DarkHeaderRenderer());
@@ -240,21 +242,23 @@ public final class UIStyle {
         Runnable update = () -> {
             double sum = 0;
             int count = 0;
-            int[] rows = table.getSelectedRows();
-            if (rows.length > 0) {
-                for (int viewRow : rows) {
-                    for (int viewCol = 0; viewCol < table.getColumnCount(); viewCol++) {
-                        TableColumn column = table.getColumnModel().getColumn(viewCol);
-                        if (column.getMaxWidth() == 0 || !isQuantityColumn(table, viewCol)) continue;
-                        Double value = parseNumericCell(table.getValueAt(viewRow, viewCol));
-                        if (value != null) {
-                            sum += value;
-                            count++;
-                        }
+            for (int viewRow : table.getSelectedRows()) {
+                for (int viewCol : table.getSelectedColumns()) {
+                    if (!table.isCellSelected(viewRow, viewCol)) continue;
+                    TableColumn column = table.getColumnModel().getColumn(viewCol);
+                    if (column.getMaxWidth() == 0) continue; // 跳过隐藏列（如 ID）
+                    Double value = parseNumericCell(table.getValueAt(viewRow, viewCol));
+                    if (value != null) {
+                        sum += value;
+                        count++;
                     }
                 }
             }
-            border.setTitle("选中数量合计: " + (count == 0 ? "0" : formatSum(sum)));
+            if (count == 0) {
+                border.setTitle("选中数字合计: 0");
+            } else {
+                border.setTitle("选中数字合计: " + formatSum(sum) + " （" + count + " 项）");
+            }
             owner.repaint();
         };
         table.getSelectionModel().addListSelectionListener(e -> {
@@ -263,12 +267,6 @@ public final class UIStyle {
         table.getColumnModel().getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) update.run();
         });
-    }
-
-    private static boolean isQuantityColumn(JTable table, int viewCol) {
-        String name = table.getColumnName(viewCol);
-        return name.contains("数量") || name.contains("用量") || name.contains("需求")
-            || name.contains("库存") || name.contains("扣") || name.contains("补");
     }
 
     private static Double parseNumericCell(Object value) {

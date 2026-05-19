@@ -6,6 +6,7 @@ import com.bom.service.BomService;
 import com.bom.service.BomService.BomRequest;
 import com.bom.service.BomService.BomSummaryRow;
 import com.bom.service.OrderService;
+import com.bom.service.OrderService.OrderPick;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -543,7 +544,13 @@ public class BomPanel extends JPanel {
             projectNameField.setText(projectName);
         }
         try {
-            long orderId = orderService.saveOrder(projectName, currentRows);
+            List<OrderPick> picks = new ArrayList<>();
+            for (Map.Entry<Long, Double> e : pickedQuantities.entrySet()) {
+                if (e.getValue() != null && e.getValue() > 0) {
+                    picks.add(new OrderPick(e.getKey(), e.getValue()));
+                }
+            }
+            long orderId = orderService.saveOrder(projectName, currentRows, picks);
             JOptionPane.showMessageDialog(this, "已保存到订单，订单ID: " + orderId);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "保存订单失败: " + ex.getMessage());

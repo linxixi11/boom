@@ -178,6 +178,17 @@ public class DatabaseManager {
             ")"
         );
 
+        // 订单原始选择项（成品/半成品/零件/外购件 + 数量），用于订单可再次编辑/重算汇总
+        stmt.execute(
+            "CREATE TABLE IF NOT EXISTS bom_order_pick (" +
+            "  id BIGINT AUTO_INCREMENT PRIMARY KEY," +
+            "  order_id BIGINT NOT NULL," +
+            "  component_id BIGINT NOT NULL," +
+            "  quantity DOUBLE NOT NULL," +
+            "  FOREIGN KEY (order_id) REFERENCES bom_order(id) ON DELETE CASCADE" +
+            ")"
+        );
+
         stmt.close();
         initOptionTable(conn);
         initPreferenceTable(conn);

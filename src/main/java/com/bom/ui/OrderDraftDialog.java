@@ -6,6 +6,7 @@ import com.bom.service.BomService;
 import com.bom.service.BomService.BomRequest;
 import com.bom.service.BomService.BomSummaryRow;
 import com.bom.service.OrderService;
+import com.bom.service.OrderService.OrderPick;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -332,6 +333,16 @@ public class OrderDraftDialog extends JDialog {
         return requests;
     }
 
+    private List<OrderPick> collectPicks() {
+        List<OrderPick> picks = new ArrayList<>();
+        for (Map.Entry<Long, Double> e : pickedQuantities.entrySet()) {
+            if (e.getValue() != null && e.getValue() > 0) {
+                picks.add(new OrderPick(e.getKey(), e.getValue()));
+            }
+        }
+        return picks;
+    }
+
     private void saveOrder() {
         if (currentRows.isEmpty()) {
             JOptionPane.showMessageDialog(this, "请先生成订单明细");
@@ -343,7 +354,7 @@ public class OrderDraftDialog extends JDialog {
             return;
         }
         try {
-            orderService.saveOrder(projectName, currentRows);
+            orderService.saveOrder(projectName, currentRows, collectPicks());
             if (afterSaved != null) afterSaved.run();
             dispose();
         } catch (SQLException e) {
