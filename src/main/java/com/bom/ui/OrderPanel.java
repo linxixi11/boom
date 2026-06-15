@@ -170,6 +170,7 @@ public class OrderPanel extends JPanel {
         resultTitle.add(new JLabel("项目名称"));
         projectNameField = new JTextField(14);
         projectNameField.setFont(UIStyle.FONT);
+        projectNameField.setEditable(true);
         resultTitle.add(projectNameField);
         resultHeader.add(resultTitle, BorderLayout.WEST);
         JPanel resultEast = new JPanel(new BorderLayout(8, 0));
@@ -209,11 +210,12 @@ public class OrderPanel extends JPanel {
         resultPanel.add(resultCenter, BorderLayout.CENTER);
 
         JButton exportExcelBtn = UIStyle.button("导出 Excel");
+        JButton shippingListBtn = UIStyle.accentButton("生成发货清单");
         JButton pageSetupBtn = UIStyle.button("页面设置");
         JButton previewBtn = UIStyle.button("打印预览");
         JButton printBtn = UIStyle.button("打印");
         JButton saveBtn = UIStyle.primaryButton("保存修改（覆盖原订单）");
-        resultPanel.add(UIStyle.buttonRow(exportExcelBtn, pageSetupBtn, previewBtn, printBtn, saveBtn), BorderLayout.SOUTH);
+        resultPanel.add(UIStyle.buttonRow(exportExcelBtn, shippingListBtn, pageSetupBtn, previewBtn, printBtn, saveBtn), BorderLayout.SOUTH);
 
         JSplitPane editorSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftSplit, resultPanel);
         editorSplit.setResizeWeight(0.42);
@@ -271,10 +273,19 @@ public class OrderPanel extends JPanel {
         resultTypeFilter.addActionListener(e -> applyResultFilter());
 
         exportExcelBtn.addActionListener(e -> exportExcel());
+        shippingListBtn.addActionListener(e -> exportShippingList());
         pageSetupBtn.addActionListener(e -> pageFormat = TablePrintSupport.showPageSetup(this, pageFormat));
         previewBtn.addActionListener(e -> TablePrintSupport.showPreview(this, resultTable, pageFormat, printTitle()));
         printBtn.addActionListener(e -> TablePrintSupport.print(this, resultTable, pageFormat, printTitle()));
         saveBtn.addActionListener(e -> saveChanges());
+
+        // 项目名称失去焦点时自动保存
+        projectNameField.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                autoSaveProjectName();
+            }
+        });
 
         refreshData();
     }
@@ -610,6 +621,34 @@ public class OrderPanel extends JPanel {
         }
     }
 
+    /**
+     * 项目名称失去焦点时自动保存——仅更新项目名称，不影响明细和库存。
+     */
+    private void autoSaveProjectName() {
+        if (loadedOrderId == null) return;
+        String newName = projectNameField.getText().trim();
+        if (newName.isEmpty()) return;
+        // 与左侧列表对比，若无变化则跳过
+        int row = orderTable.getSelectedRow();
+        if (row >= 0) {
+            String oldName = String.valueOf(orderModel.getValueAt(orderTable.convertRowIndexToModel(row), 1));
+            if (newName.equals(oldName)) return;
+        }
+        try {
+            orderService.updateProjectName(loadedOrderId, newName);
+            // 同步刷新左侧列表，但不重新加载整个订单
+            for (int i = 0; i < orderModel.getRowCount(); i++) {
+                Long id = (Long) orderModel.getValueAt(i, 0);
+                if (loadedOrderId.equals(id)) {
+                    orderModel.setValueAt(newName, i, 1);
+                    break;
+                }
+            }
+        } catch (SQLException e) {
+            // 静默失败——项目名称更新失败不影响用户操作
+        }
+    }
+
     private void deleteSelectedOrder() {
         int row = orderTable.getSelectedRow();
         if (row < 0) return;
@@ -648,6 +687,46 @@ public class OrderPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "导出成功: " + file.getAbsolutePath());
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "导出失败: " + ex.getMessage());
+            }
+        }
+    }
+
+    private void exportShippingList() {
+        if (currentRows.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "当前没有可导出的订单明细");
+            return;
+        }
+        // 获取用户选中的行
+        int[] selectedViewRows = resultTable.getSelectedRows();
+        List<BomSummaryRow> selectedRows = new ArrayList<>();
+        if (selectedViewRows.length > 0) {
+            for (int viewRow : selectedViewRows) {
+                int modelRow = resultTable.convertRowIndexToModel(viewRow);
+                if (modelRow >= 0 && modelRow < currentRows.size()) {
+                    selectedRows.add(currentRows.get(modelRow));
+                }
+            }
+        } else {
+            // 未选中任何行时，提示用户先选行
+            JOptionPane.showMessageDialog(this,
+                "请先在订单明细表中选中需要发货的行（按住 Ctrl/Command 可多选，按住 Shift 可连选），\n然后再点击「生成发货清单」。\n\n如需导出全部明细，请使用「导出 Excel」。",
+                "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileFilter(new FileNameExtensionFilter("Excel 文件", "xlsx"));
+        String pn = projectNameField.getText().trim();
+        chooser.setSelectedFile(new File(pn.isEmpty() ? "发货清单.xlsx" : pn + "-发货清单.xlsx"));
+        if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+            if (!file.getName().endsWith(".xlsx")) file = new File(file.getAbsolutePath() + ".xlsx");
+            try {
+                bomService.exportShippingList(selectedRows, file, pn);
+                JOptionPane.showMessageDialog(this,
+                    "发货清单导出成功（共 " + selectedRows.size() + " 项）: " + file.getAbsolutePath());
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "导出发货清单失败: " + ex.getMessage());
             }
         }
     }

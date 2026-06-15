@@ -278,4 +278,16 @@ public class OrderService {
             ps.executeUpdate();
         }
     }
+
+    /**
+     * 仅更新订单的项目名称，不影响明细和库存。
+     */
+    public void updateProjectName(long orderId, String projectName) throws SQLException {
+        try (Connection conn = DatabaseManager.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement("UPDATE bom_order SET project_name = ? WHERE id = ?")) {
+            ps.setString(1, projectName);
+            ps.setLong(2, orderId);
+            ps.executeUpdate();
+        }
+    }
 }
