@@ -292,6 +292,91 @@ public class BomService {
     }
 
     /**
+     * 导出发货清单到 Excel（仅包含选中行）
+     */
+    public void exportShippingList(List<BomSummaryRow> rows, File file, String projectName) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("发货清单");
+            configurePrint(sheet);
+
+            // 标题样式
+            CellStyle titleStyle = workbook.createCellStyle();
+            Font titleFont = workbook.createFont();
+            titleFont.setBold(true);
+            titleFont.setFontHeightInPoints((short) 16);
+            titleStyle.setFont(titleFont);
+            titleStyle.setAlignment(HorizontalAlignment.CENTER);
+            titleStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+
+            // 表头样式
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerFont.setFontHeightInPoints((short) 12);
+            headerStyle.setFont(headerFont);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            applyBorder(headerStyle);
+
+            CellStyle textStyle = workbook.createCellStyle();
+            textStyle.setWrapText(true);
+            textStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+            applyBorder(textStyle);
+
+            CellStyle numberStyle = workbook.createCellStyle();
+            numberStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0.###"));
+            numberStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+            applyBorder(numberStyle);
+
+            // 标题行
+            Row titleRow = sheet.createRow(0);
+            titleRow.setHeightInPoints(24);
+            Cell titleCell = titleRow.createCell(0);
+            String title = projectName == null || projectName.trim().isEmpty()
+                ? "发货清单"
+                : projectName.trim() + " - 发货清单";
+            titleCell.setCellValue(title);
+            titleCell.setCellStyle(titleStyle);
+
+            // 表头行 — 发货清单列（去掉库存相关列，保留核心信息）
+            String[] headers = {"序号", "类型", "物料编号", "物料名称", "规格型号", "材质", "单位", "需补数量"};
+            sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, headers.length - 1));
+            Row headerRow = sheet.createRow(1);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // 数据行
+            int rowNum = 2;
+            for (BomSummaryRow row : rows) {
+                Row r = sheet.createRow(rowNum++);
+                createNumberCell(r, 0, row.sequence, numberStyle);
+                createTextCell(r, 1, typeLabel(row.type), textStyle);
+                createTextCell(r, 2, row.code, textStyle);
+                createTextCell(r, 3, row.name, textStyle);
+                createTextCell(r, 4, row.spec, textStyle);
+                createTextCell(r, 5, row.material, textStyle);
+                createTextCell(r, 6, row.unit, textStyle);
+                createNumberCell(r, 7, row.shortageQty, numberStyle);
+            }
+
+            sheet.createFreezePane(0, 2);
+            sheet.setAutoFilter(new CellRangeAddress(1, Math.max(1, rowNum - 1), 0, headers.length - 1));
+            int[] widths = {8, 10, 14, 22, 24, 16, 10, 12};
+            for (int i = 0; i < widths.length; i++) {
+                sheet.setColumnWidth(i, widths[i] * 256);
+            }
+
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                workbook.write(fos);
+            }
+        }
+    }
+
+    /**
      * 按成品导出BOM明细（每个成品展开到零件级别）
      */
     public List<BomExportRow> exportProductBom(List<Long> productIds) throws SQLException {
